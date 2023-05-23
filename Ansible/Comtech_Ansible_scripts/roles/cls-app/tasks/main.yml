@@ -1,0 +1,114 @@
+---
+# Tasks for app-config
+- name: create /collectionconfig directory
+  file:
+    path: "{{ COLLECTION_SERVER_PATH }}/collectionconfig"
+    state: directory
+    mode: '0755'
+    owner: collectionServer
+    group: collectionServer
+  when: "inventory_hostname == 'service1' or inventory_hostname == 'service2'"
+  notify:
+    - restart collectionServer
+
+- name: Render application config from template and site-specific values
+  template:
+    src:  config.json.j2
+    dest: "{{ COLLECTION_SERVER_PATH }}/collectionconfig/config.json"
+    owner: collectionServer
+    group: collectionServer
+    mode: '0644'
+    backup: yes
+  when: "inventory_hostname == 'service1' or inventory_hostname == 'service2'"
+  notify:
+    - restart collectionServer
+
+- name: Render application startServerProd.sh file from template and site-specific values
+  template:
+    src:  startServerProd.json.j2
+    dest: "{{ COLLECTION_SERVER_PATH }}/startServerProd.sh"
+    owner: collectionServer
+    group: collectionServer
+    mode: '0644'
+  when: "inventory_hostname == 'service1' or inventory_hostname == 'service2'"
+  notify:
+    - restart collectionServer
+
+- name: Ensure logging directory exists
+  file:
+    path: "{{ CollectionServer.collectionLogPath }}"
+    state: directory
+    mode: '0755'
+    owner: collectionServer
+    group: collectionServer
+  when: "inventory_hostname == 'service1' or inventory_hostname == 'service2'"
+  notify:
+    - restart collectionServer
+    
+# Block of tasks to be executed during dlp-config only
+- name: Collection Server dlp-config phase tasks
+  block:
+   # Tasks for ldr-config
+   - name: Render NANAV LDR config from template and site-specific values
+     template:
+       src:  "cls_nnav_ldr.json.j2"
+       dest: "{{ COLL_SERV_LDR_SHARED_VOLUME_PATH }}//cls_nnav_ldr.json"
+       owner: ldr_consumer
+       group: ldr_consumer
+       mode: '0777'
+       backup: yes
+     when: "inventory_hostname == 'config'"
+     notify:
+       - restart ldr_consumer
+
+   - name: Render ELS LDR config from template and site-specific values
+     template:
+       src:  "cls_els_ldr.json.j2"
+       dest: "{{ COLL_SERV_LDR_SHARED_VOLUME_PATH }}//cls_els_ldr.json"
+       owner: ldr_consumer
+       group: ldr_consumer
+       mode: '0777'
+       backup: yes
+     when: "inventory_hostname == 'config'"
+     notify:
+       - restart ldr_consumer
+
+   #Tasks for sd-config
+   - name: Encode password for collection server
+     shell: |
+       !/bin/bash
+       export DEFAULT_CRED='auth:{{ collection_server.default_cred }}'
+       echo $DEFAULT_CRED
+     register: DEFAULT_CRED
+     when: "inventory_hostname == 'service1' or inventory_hostname == 'service2'"
+
+   - name: Update SD Manager file
+     template:
+       src:  collectionserver-sd.json.j2
+       dest: "{{ COLSERVER_SD_MGR_PATH }}/collectionserver-sd.json"
+       owner: root
+       group: root
+       mode: '0644'
+       backup: yes
+     when: "inventory_hostname == 'service1' or inventory_hostname == 'service2'"
+     notify:
+       - restart sdmgr
+
+   #Tasks for om-config
+   - name: Get OM reports target directory status
+     stat:
+       path: "{{ METRICS_TARGET }}"
+     register: omreportsdirstatus
+     when: "inventory_hostname == 'config'"
+
+   - name: Install OM report generator configuration
+     copy: src={{item}} dest={{ METRICS_TARGET }}/{{item}} mode=0444 owner=dashapp group=dashapp backup=yes
+     with_items:
+       - CLS_metrics_reports_metadata_v1.json
+     when:
+       - "inventory_hostname == 'config'"
+       - omreportsdirstatus.stat.isdir is defined
+     notify:
+       - restart report-generator
+  when: not (bootstrap|bool)
+

@@ -1,0 +1,67 @@
+---
+- hosts: all
+  gather_facts: true
+  user: centos
+  become: yes
+  become_method: sudo
+
+  vars_files:
+    - dlpconfig.yml
+
+  vars:
+    bootstrap: false
+
+  pre_tasks:
+    - name: "sysctl overrides"
+      sysctl: name="{{ item.name }}"  value="{{ item.value }}"  state=present  sysctl_set=yes
+      with_items: "{{ dlp.hosts[inventory_hostname]['sysctl'] }}"
+      when: "'testhosts' not in group_names"
+
+    - name: "override /etc/cloud/cloud.cfg by rendering /tcs/ansible/templates/cloud.cfg.j2"
+      template: src=cloud.cfg.j2  dest=/etc/cloud/cloud.cfg  backup=yes
+      when: cloudcfg_override
+
+  roles:
+    - { role: permissions, when: "'testhosts' not in group_names" }
+    - { role: network-routes, tags: routes, when: "'testhosts' not in group_names" }
+    - { role: resolv-conf, when: "'testhosts' not in group_names" }
+    - { role: rsyslog, when: "'testhosts' not in group_names" }
+    - { role: chrony, when: "'testhosts' not in group_names" }
+    - { role: tcs_lic, when: inventory_hostname == "config" }
+    - { role: logrotation, when: "'testhosts' not in group_names" }
+    - { role: kafka_topics, tags: create_kafka_topics, when: inventory_hostname == "config" }
+    - { role: ldr_consumer, when: inventory_hostname == "config" }
+    - { role: ltdr_consumer, when: inventory_hostname == "config" }
+    - { role: snmptrapd, when: inventory_hostname == "config" }
+    - { role: events_consumer, when: inventory_hostname == "config" }
+    - { role: om_consumer, when: inventory_hostname == "config" }
+    - { role: backup-manager, when: "'testhosts' not in group_names" }
+    - { role: file-service, when: inventory_hostname == "config" }
+    - { role: ems, tags: ems, when: "'testhosts' not in group_names" }
+    - { role: dashboard, when: inventory_hostname == "config" }
+    - { role: hcmgr, when: inventory_hostname == "config" }
+    - { role: kafka-connector, when: inventory_hostname == "config" }
+    - { role: platform_om, when: inventory_hostname == "config" }
+    - { role: mlc-license-update, tags: [mlc-license-update], when: "('mlcoampus' in group_names) and (mlc_enabled|bool)" }
+    - { role: mlc-overrides, tags: [mlc-overrides], when: "('mlcoampus' in group_names or 'mlclspus' in group_names) and (mlc_enabled|bool)" }
+    - { role: permissions, when: "'testhosts' not in group_names" }
+    - { role: splunk-test-receiver, when: inventory_hostname == "autotest" }
+    - { role: splunkuf, when: inventory_hostname != "autotest" }
+    - { role: sdmgr, when: "'testhosts' not in group_names" }
+    - { role: cls-app, tags: cls, when: "(inventory_hostname == 'config' or 'appnodes' in group_names) and (cls_enabled|bool)" }
+
+  post_tasks:
+    - name: "Restart SEC to ensure monitoring of all logfiles"
+      command: "monit restart ems-event-correlator"
+      when: "'testhosts' not in group_names"
+      changed_when: false
+
+#    - name: "Restart sdmgr to ensure proper state"
+#      service: name=sdmgr state=restarted enabled=yes
+#      when: "'testhosts' not in group_names"
+#      changed_when: false
+
+    - name: "Restart hcmgr to ensure proper state"
+      service: name=hcmgr state=restarted enabled=yes
+      when: inventory_hostname == "config"
+      changed_when: false

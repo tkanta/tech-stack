@@ -1,0 +1,37 @@
+---
+
+  COLSERVER_SD_MGR_PATH: /etc/sdmgr.d
+  COLLECTION_SERVER_PATH: /usr/lib/collectionServer
+  METRICS_TARGET: /opt/tcs/report-generator/meta
+  COLL_SERV_LDR_SHARED_VOLUME_PATH: /usr/lib/ldr_consumer/config
+  ENABLE_CERT_VALIDATION: true
+  CollectionServer:
+    port: 8843
+    collectionLogPath: "/tcs/var/log/collectionServer"
+    eventXMLpath: "../../meta/xml"
+    mateRetryCount: 3
+    processName: "CollectionServer"
+    omTopic: "OM"
+    eventTopic: "EVENT" 
+    ldrTopic: "LDR"
+    debug: false
+    info: false
+    runDaemon: false
+    logTransactions: false
+    hcs_profile: "collectionServer"
+    hcs_desc: "Collection Server"
+    horizUncertainty: 500
+    matricsReportInterval: 60     
+    hmac:
+      hashAlgorithm: "sha1"
+      secret: "Setec Astronomy"
+    crypto:
+      cryptoKeyMap: "d6F3Efeq"
+      cryptoAlgorithm: "aes-256-ctr"
+    redis:
+      retryConnection: 3
+      dlpRedisSentinels: true
+      sentinel:
+        name: "mymaster"
+        port: 26381
+

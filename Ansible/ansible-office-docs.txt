@@ -1,0 +1,537 @@
+
+
+-------------- Ansible structure: ----------------
+
+	https://blog.knoldus.com/ansible-roles-directory-structure/#:~:text=The%20concept%20of%20an%20Ansible,directory%20skeleton%20for%20our%20role.
+
+
+------------------------ Ansible tasks: ---------------------------
+	
+	shell with items:
+		- name: Apply Calico BGP Peers Configuration
+      shell: |
+        {{ calico.ctl.local_env }}
+        echo "{apiVersion: projectcalico.org/v3, kind: BGPPeer, metadata: " \
+        "{name: {{ item.name }}}, spec: {peerIP: {{ item.peer_ip }}, " \
+        "asNumber: {{ item.peer_as }} }}" | calicoctl-linux-amd64 apply -f -
+      args:
+        executable: /bin/bash
+      with_items: "{{ calico.bgp_peers }}"
+      when:
+        - "'kubernetes_master1' in group_names"
+        - "not k8s_cluster_alive"
+
+      ** execute the shell commands on /bin/bash using list of items when both condition succeeded  
+
+
+	fetch git repo:
+		- name: Fetch required 3rd party Git repos
+	   git:
+	     repo: "{{ item.git_url }}"
+	     dest: "{{ external_artifacts.repo_path }}/{{ item.subdir }}"
+	     version: "{{ item.git_version }}"
+	   with_items: "{{ external_artifacts.repos }}"
+
+	
+	template:
+		** https://adamtheautomator.com/ansible-template/
+		** Ansible will copy the ssh_config.j2 to the remote host’s /opt directory, replace all variables inside with static values and rename the file to ssh_config.
+
+		 - name: Deploy ssh config files
+	    template: dest=/etc/ssh/{{ item }}  owner=root  group=root  src={{ item }}.j2  backup=yes
+	    with_items:
+	    - ssh_config
+	    - sshd_config
+
+	yum install:
+		- name: yum install perl, python-pip, python-devel, python-ldap and yum-utils
+      yum:
+        state: present
+        name:
+        - perl
+        - python-pip   			
+   
+   sysctl update:
+   	** https://github.com/ansible-collections/ansible.posix/blob/main/docs/ansible.posix.sysctl_module.rst
+
+      - name: Update sysctl.conf
+      sysctl: name="{{ item.name }}"  value="{{ item.value }}"  state=present  reload=no
+      with_items:
+        - { name: "net.ipv4.ip_local_port_range", value: "10000 65535" }
+        - { name: "net.sctp.hb_interval", value: "5000" }
+
+   systemd service stop and disable:
+   	- name: Stop and disable the chrony service
+      systemd:
+        name: chronyd
+        enabled: no
+        state: stopped
+
+   debug message:
+   	- debug: msg="{{ item }}"
+  		with_items:
+  		  - "{{ site_product }}"
+  		  - "{{ env }}"     
+   create directory:
+   	- name: Create /opt/tcs directory
+      file: path=/opt/tcs state=directory owner=root group=root mode=1777
+   
+   create soft link:
+   	- name: link vmlctraffic.js tool to /tcs/bin/
+   	file:
+   	 src: "/opt/tcs/healthcheckbase-{{ healthcheckbase_version }}/meta/tools/{{ item }}"
+   	 dest: "/tcs/bin/{{ item }}"
+   	 state: link
+   	with_items:
+   	  - vmlcTraffic.js
+   
+   service enable and start:
+   	- name: Ensure sdmgr is enabled and started
+      service: name=sdmgr state=restarted enabled="{{ service_enabled_default | default('yes') }}"
+
+
+============================= groupName condition: ===================================
+
+	 	{ role: plmn-certs, when: "plmn_vips is defined and 'kubernetes_master1' in group_names"}
+	 	THis role will be executed when plmn_vips variable is defined and only for kubernetes_master1 group IP's if present 		
+
+================= ansible block and rescue and always: ===================
+
+   	- https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_blocks.html		
+   	* The tasks in the block execute normally. If any tasks in the block return failed, the rescue section executes tasks to recover from the error. The always section runs regardless of the results of the block and rescue sections.
+
+================ ansible  synchronize (rsync): ===========================
+
+   	https://linux.die.net/man/1/rsync
+   	https://stackoverflow.com/questions/32468350/ansible-copy-vs-synchronize **
+   	
+   	https://www.educba.com/ansible-synchronize/ ***
+   		In this example, we will do the synchronization of files from source machine viz. Ansible controller node to the remote host. We have a set of files under /var/tmp/sync_folder on the Ansible controller node which will be transferred to remote host via Ansible synchronize module.
+
+   		Sample:
+   			---
+				- hosts: host-remote tasks:
+				- name: here we sync /var/tmp/sync_folder directory to remote host synchronize:
+				src: /var/tmp/sync_folder dest: /var/tmp/
+
+   	
+
+   	Below ansible comtech synchronize (vmss / manifest) files from ansible controller to all remote machines (inventory) it connects
+
+   	- name: Sync all k8s-masters with k8s-master1
+		  synchronize:
+		    src: "{{ item }}"
+		    dest: "{{ item }}"
+		    dirs: yes
+		  with_items:
+		    - /home/{{ cloud_user }}/.vmss/
+		    - /home/{{ cloud_user }}/manifests/
+
+----------------------- Ansible k8s helm management: -----------------------------
+
+	https://github.com/ansible-collections/community.kubernetes	
+	** community.kubernetes.helm – Manages Kubernetes packages with the Helm package manager	
+	** community.kubernetes (a.k.a. kubernetes.core) 
+	** k8s manage helm local repository, so that can be applied in k8s cluster
+
+	- name: "Setup the local stakater helm repo reference"
+    community.kubernetes.helm_repository:
+      name: "{{ helm_repo_stakater }}"
+      repo_url: "{{ helm_repo_url_stakater }}"
+    ignore_errors: yes
+
+	- name: "Setup reloader"
+    community.kubernetes.helm:
+      release_name: "reloader"
+      release_namespace: "default"
+      chart_ref: "{{ helm_repo_stakater }}/reloader"
+      wait: yes
+      values_files:
+        - /home/{{ cloud_user }}/manifests/helm/reloader-values.yaml
+    ignore_errors: yes
+    when: "'kubernetes_master1' in group_names"
+
+
+-------------------- git archives / unarchive ----------------------------------
+
+sample vars:
+		archives:
+		  - name: Calico
+		    archive: https://github.com/projectcalico/calico/releases/download/v{{ version.calico }}/release-v{{ version.calico }}.tgz 
+		    subdir: calico-release
+		    excluded_files:
+		    - "images/"
+
+
+Ansible task:
+
+		- name: Ensure archive output directories exist within the parent output directory
+		  file:
+		    path: "{{ external_artifacts.output_dir }}/{{ item.subdir }}"
+		    state: directory
+		  with_items: "{{ external_artifacts.archives }}"
+
+	      
+		- name: Extract required release archives to output directory
+		  unarchive:
+		    src: "{{ item.archive }}"
+		    dest: "{{ external_artifacts.output_dir }}/{{ item.subdir }}"
+		    extra_opts: [--strip-components=1]
+		    remote_src: yes
+		    exclude: "{{ item.excluded_files }}"
+		  with_items: "{{ external_artifacts.archives }}"
+
+
+------------------ git specific repo subelements / ansible loops  --------------------------------
+
+ansible loops:
+		https://docs.ansible.com/ansible/latest/collections/ansible/builtin/subelements_lookup.html
+		https://chromatichq.com/insights/untangling-ansible-loops/ ******
+
+sample vars :
+		  - name: postgres-operator
+        subdir: postgres-operator
+        git_url: https://github.com/zalando/postgres-operator.git
+        git_version: 30b612489a2a20d968262791857d1db1a85e0b36 (commit from tag)
+        needed_files:
+        - charts/postgres-operator  (fetch these folders and files only from the repo)
+     
+Ansible task:      
+      - name: Copy required repo contents to output directory
+		  copy:
+		    src: "{{ external_artifacts.repo_path }}/{{ item.0.subdir }}/{{ item.1 }}"
+		    dest: "{{ external_artifacts.output_dir }}/{{ item.0.subdir }}"
+		  with_subelements:
+		  - "{{ external_artifacts.repos }}"
+		  - needed_files
+		    
+
+
+---------------- shell multiline commands: ------------------------
+
+		https://www.middlewareinventory.com/blog/ansible-shell-examples/
+		https://stackoverflow.com/questions/39787609/ansible-shell-and-with-items
+		https://www.javatpoint.com/ansible-command
+		https://stackoverflow.com/questions/40230184/how-to-do-multiline-shell-script-in-ansible
+
+
+------------------- multiline shell with pipe ------------------------
+
+https://stackoverflow.com/questions/40230184/how-to-do-multiline-shell-script-in-ansible
+
+The > is a folding block operator. That is, it joins multiple lines together by spaces. The following syntax:
+
+key: >
+  This text
+  has multiple
+  lines
+Would assign the value This text has multiple lines\n to key.
+
+The | character is a literal block operator. This is probably what you want for multi-line shell scripts. The following syntax:
+
+key: |
+  This text
+  has multiple
+  lines
+Would assign the value This text\nhas multiple\nlines\n to key.
+
+-------------------- Anisble template --------------------------------
+
+	template
+	block:
+			https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_blocks.html
+			* All tasks in a block inherit directives applied at the block level	
+
+	community.kubernetes.helm:
+		https://docs.ansible.com/ansible/3/collections/community/kubernetes/helm_module.html
+		* Install, upgrade, delete packages with the Helm package manager	
+
+
+========================= Ansible uri module: =============================
+
+	TASK [config-update : Make API call to CLS for reloading updated configuration at runtime] *************************************************
+	[WARNING]: Consider using the get_url or uri module rather than running 'curl'.  If you need to use command because get_url or uri is
+	insufficient you can add 'warn: false' to this command task or set 'command_warnings=False' in ansible.cfg to get rid of this message.
+
+	https://www.ansiblepilot.com/articles/submit-a-get-request-to-a-rest-api-endpoint-interact-with-web-services-ansible-module-uri/
+
+sample:
+---------
+- name: Make API call to CLS for reloading updated configuration at runtime
+  uri:
+   url: "http://localhost:8843/collection/v1/configReload"
+   method: GET
+   status_code: 200
+  register: result
+
+- name: debug
+  debug:
+    var: result.json.status
+
+------------------ shell: ---------------------------------
+		
+		https://cloudaffaire.com/faq/execute-curl-command-in-ansible/
+		https://stackoverflow.com/questions/35798101/execute-curl-x-with-ansible-playbook
+			- curl request 
+
+		https://docs.ansible.com/ansible/latest/collections/ansible/builtin/shell_module.html
+			- parameter
+			- attribute
+			- return values
+		
+		https://www.cherryservers.com/blog/how-to-run-remote-commands-with-ansible-shell-module
+			- difference between shell / command
+
+		https://docs.ansible.com/ansible/latest/user_guide/playbooks_error_handling.html	
+			- Defining failure
+			
+
+--------------  ansible: create a list from comma separated string ------------
+
+https://stackoverflow.com/questions/58559043/ansible-create-a-list-from-comma-separated-string
+
+
+vars:
+    var1: test1,test2
+    var2: test3
+
+  tasks:
+
+  - name: Create the list
+    set_fact: 
+      list_var1: "{{ var1.split(',') | to_json }}"
+      list_var2: "{{ var2.split(',') | to_json}}"
+
+  - debug:
+      var: list_var1
+
+------------------------- Ansible Service --------------------------
+
+*** ansible.builtin.service_facts:
+		It is used for gathering facts for all services.
+		https://docs.ansible.com/ansible/latest/collections/ansible/builtin/service_facts_module.html		
+
+		Sample:
+			file - dlp-config.yml
+			pre_tasks:
+				- name: Check the status of redis-sentinel-cls service
+			     ansible.builtin.service_facts:
+			     when: "'testhosts' not in group_names"
+
+			file - meta/main.yml     
+			---
+			dependencies:  
+			  - role: redis-custom
+			    tags: redis-6381
+			    redis_target_name: cls
+			    redis_master_name: mymaster
+			    redis_master_host_name: admin2
+			    redis_port: 6381
+			    sentinel_port: 26381
+			    when: "'testhosts' not in group_names and (cls_enabled | bool) and (ansible_facts.services['redis-sentinel-cls.service']['state'] == 'stopped') "
+
+*** service restart handler 
+		- if file of a service doesn't change, although properties file changed, it won't restart service
+
+--------------------- Ansible j2 template rendering array issue -------------------
+
+*** Error: Ansible template adds 'u' to array in template
+	https://stackoverflow.com/questions/41521138/ansible-template-adds-u-to-array-in-template ***
+	https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html
+
+	- You get u' ' because you print the object containing the Unicode strings and this is how Python renders it by default.Or you can rely on the fact, that the string output is a JSON and render it with to_json filter: {{ key }} = {{ value | to_json }}
+
+	- or, You can filter it with list | join filters:
+		domains:
+		  - { main: 'local1.com', sans: ['test.local1.com', 'test2.local.com'] }
+		  - { main: 'local3.com' }
+		  - { main: 'local4.com' }
+
+		{% for domain in domains %}
+		[[acme.domains]]
+		{% for key, value in domain.iteritems() %}
+		{% if value is string %}
+		  {{ key }} = "{{ value }}"
+		{% else %}
+		  {{ key }} = ["{{ value | list | join ('\',\'') }}"]
+		{% endif %}
+		{% endfor %}
+		{% endfor %}
+
+*** template - true boolean value should be suffix with '| lower'
+		sample:
+			"useLeading14DigitsOfImeiForKey" : {{ collection_server.useLeading14DigitsOfImeiForKey | default(true) | lower }}
+
+---------------------- Ansible Fundamentals -------------------------------
+
+Getting Started:
+	- https://www.guru99.com/ansible-tutorial.html ****
+	- https://serversforhackers.com/c/an-ansible2-tutorial *****
+	- https://www.softwaretestinghelp.com/ansible-tutorial-1/
+	- https://docs.ansible.com/ansible/latest/user_guide/playbooks_intro.html
+
+Overview:
+	* Ansible is a configuration management and provisioning tool, similar to Chef, Puppet or Salt.
+	* Ansible Tasks are idempotent. Without a lot of extra coding, bash scripts are usually not safety run again and again. Ansible uses "Facts", which is system and environment information it gathers ("context") before running Tasks.Ansible uses these facts to check state and see if it needs to change anything in order to get the desired outcome. This makes it safe to run Ansible Tasks against a server over and over again.
+	* Notified Handlers will be executed at last, after all task completed
+
+Ansible Installation:
+	Centos/RedHat:
+		- sudo yum install epel-release
+		- sudo  yum install -y ansible
+
+Ansible Running:
+	- ansible-playbook test.yml 
+
+Ad-hoc command:
+	- ansible -i hosts all -m ping
+	- ansible -i ./hosts --connection=local local -m ping (connect without ssh and for local host)
+	- options
+		-m ping (use module ping)
+		-i ./hosts(specify inventory file)
+		-c local or --connection=local  (use local connection not over SSH)
+		all (run over all hosts)
+		-a (pass any argument)
+
+Playbook:
+	- https://docs.ansible.com/ansible/latest/user_guide/playbooks_intro.html
+	- grouping of hosts, ip etc
+	- file content replace (lineinfile):
+		https://stackoverflow.com/questions/40788575/replace-a-line-in-a-config-file-with-ansible	
+    - ansible-playbook will search roles folder relative to the playbook file
+    	- generally playbook file can kept outside roles folder
+  - ansible playbook argument:
+  	- we can pass k/v pair to play-book as shown below
+  	- ansible-playbook -i inventory.ini alteon-maintenance.yml -e "pwd_auth_enabled=true" 
+
+Role:
+	- Roles are collection of resusable tasks, can be moved from one playbook to other but only through playbook
+	- Template is located in templates dir in the role path ( no need to give full path	)
+	- Ansible only executes each role once, even if you define it multiple times, unless the parameters defined on the role are different for each definition
+	- Ansible roles can be added conditionaly to task
+	- Use 'block' declaration for set of tasks to execute conditionaly
+
+	create roles:
+		- mkdir roles | cd roles
+		- ansible-galaxy init ldr-init
+
+    Handlers:
+	    	- handlers declared in other role can be accessible in another roles, so no need to redeclare it in
+	    	current roles 
+	    	- In my experience, having handlers with the same name in multiple roles included in the same playbook can lead to “skipping” those handlers depending upon the conditions in the roles.If those 3 roles(om,ldr,sdmgr) are not commented-out in your tests, the handlers should execute just fine. Otherwise, if you want to “add back” those handlers to the cls-app role, you can try giving them unique names (e.g. append ‘_cls’). HOWEVER, if you are not seeing unexpected “skipping” of redundant handlers (same name in multiple roles), please do let me know though!
+	    	
+	    	- Flushing Handlers:
+					Sample:
+					  - name: task1
+						- meta: flush_handlers 
+						- name: task2
+					* flush_handlers can be used between tasks to flush notified handlers before other task executes
+		      * Block Handlers are given precendence over other task handlers
+		      	- Block handlers will execute alphabetically and than other task handlers will execute alphabetically
+		      * If there is no blocks than all task notified handlers will execute alphabetically
+		      * [WARNING]: flush_handlers task does not support when conditional
+		      
+    Redis Role:
+    	- A redis role can be generic that can be used to create multiple different redis instance/sentinels
+    			
+Ansible from another Ansible:
+	- Include Vs Import 
+	- https://docs.ansible.com/ansible/2.4/playbooks_reuse_includes.html  *****
+	- https://stackoverflow.com/questions/43609132/ansible-how-to-call-a-playbook-from-another	
+
+Ansible Conditionals:
+	Conditonal Set Variable:
+		https://serverfault.com/questions/907164/ansible-conditionally-define-variables-in-vars-file-if-a-certain-condition-is-m#:~:text=29-,Ansible%3A%20Conditionally%20define%20variables%20in%20vars%20file,a%20certain%20condition%20is%20met&text=Depending%20on%20the%20value(True,on%20the%20group%20var's%20value.
+
+	- run role for a specific group of hosts:
+		https://docs.ansible.com/ansible/latest/user_guide/playbooks_conditionals.html
+		Samples:
+			roles:
+			- { role: cls-app, tags: cls, when: "'collserver' in group_names" } 
+
+
+Variables:
+	https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html
+
+	organizing and group variables: 
+		- https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html#splitting-out-vars
+    
+    Setting Env for remote:
+    	https://stackoverflow.com/questions/27733511/how-to-set-linux-environment-variables-with-ansible/27736434
+
+Inventory:
+	https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html
+
+
+Ansible Tags : 		
+		- https://www.golinuxcloud.com/ansible-tags/
+
+Ansible group filtering:
+	- https://dev.to/mjace/ansible-notes-groupnames-2jb5
+	Samples:
+		- { role: mlc-oam, tags: vmlc, when: "'mlcoampus' in group_names" }
+		run this role for 'mlcoampus' group of hosts in the inventory groups, if the group present
+
+Ansible boolean variable in When clause:
+	https://stackoverflow.com/questions/39640654/using-true-false-with-ansible-when-clause		
+	In Ansible 2.8 and later use destroy|bool to evaluate boolean variable.
+	
+	Samples:
+		---
+		- hosts: localhost
+		  connection: local
+		  vars:
+		    destroy: true
+		    gmlc_enabled: true
+
+		  tasks:
+		    - debug:
+		      when: destroy
+
+		  roles:
+		    - { role: gmlc-app, tags: gmlc, when: "gmlc_enabled|bool" }
+
+Ansible / Inventory hostname:
+	- https://www.middlewareinventory.com/blog/ansible-inventory_hostname-ansible_hostname-variables/
+	- ansible_hostname  ( host name from facts )
+	- inventory_hostname ( dynamicall access that is specified in host file )
+
+Ansible control Execution:
+	- https://docs.ansible.com/ansible/latest/user_guide/playbooks_strategies.html
+
+Ansible Modules:
+    - timeout
+   		https://docs.ansible.com/ansible/latest/collections/ansible/builtin/wait_for_module.html
+
+	- Create Directory
+		https://docs.ansible.com/ansible/latest/collections/ansible/builtin/file_module.html
+		https://stackoverflow.com/questions/31142369/how-to-use-template-module-with-different-set-of-variables
+		e.g:
+		- name: Create /export directory
+  		file: path=/export state=directory mode=0755 owner=root group=root	  
+
+  	- set_facts
+  		https://docs.ansible.com/ansible/latest/collections/ansible/builtin/set_fact_module.html
+  		https://techsemicolon.github.io/blog/2019/07/07/ansible-everything-you-need-to-know-about-set-facts/	
+  	- lineinfile
+  		For managing text in a file:
+  		https://www.middlewareinventory.com/blog/ansible-lineinfile-examples/
+  		
+  		multiple file replacement:
+  		https://u.osu.edu/hasnan.1/2013/12/11/ansible-replace-in-line-of-code-in-multiple-files-in-a-directory/  
+  		
+		  		tasks:
+				    - name: "set CERT Env in the .bashrc file"
+				      lineinfile: dest={{item}} state=present regexp="export ENABLE_CERT_VALIDATION=(true|false)" line="export ENABLE_CERT_VALIDATION=test"
+				      with_items:
+				          - ~/.bashrc
+				          - ~/.bash_profile
+				    - name: "set Password Env in the .bashrc file"
+				      lineinfile:
+				        path: ~/.bashrc
+				        regexp: "export DEFAULT_USER_PASSWORD=*"
+				        line: "export DEFAULT_USER_PASSWORD=collection"
+				        state: present
+
+				    - name: Source the bashrc file
+				      shell: source ~/.bashrc

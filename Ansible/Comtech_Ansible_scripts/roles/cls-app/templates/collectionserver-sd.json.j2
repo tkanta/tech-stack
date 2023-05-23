@@ -1,0 +1,18 @@
+{
+	"pollers" : [
+	  { "name" : "collectionServer Poller",
+		"type" : "http",  
+		"target" : "%thishost%",
+		"port"   : 8843,
+		"score" : "30",
+		"param" : "{{ DEFAULT_CRED.stdout }}",
+		"func" : "/collection/v1/status",
+		"livePoll" : "4",
+		"timeout" : "5",
+		"deadTimer": "12",
+		"deadPoll" : "20"
+	  }
+	]
+	
+}
+  

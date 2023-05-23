@@ -1,0 +1,44 @@
+1. Automation script for Azure setup
+		Azure ARM Template
+		Ansible Script
+		- https://docs.ansible.com/ansible/latest/user_guide/index.html ( Ansile doc )
+		- https://docs.microsoft.com/en-us/azure/ansible/ansible-overview ( Azure + Ansible ) 
+		
+		
+		Steps:
+			- Create VM , Storate account, Vnet, Public IP, NSG, NIC, OS Disk
+			- Install Gstreamer
+			- Install Nodejs, NVM
+			- Setup Node application
+			- Setup Docker 
+			- Run Mongo in Docker
+            			
+		Ansible Steps:
+			- Install ans configure Ansible in local Linux
+			- (Configure Ansible) https://docs.microsoft.com/en-us/cli/azure/create-an-azure-service-principal-azure-cli?view=azure-cli-latest 
+			- https://docs.microsoft.com/en-us/azure/virtual-machines/linux/ansible-create-vm?toc=https%3A%2F%2Fdocs.microsoft.com%2Fen-us%2Fazure%2Fansible%2Ftoc.json&bc=https%3A%2F%2Fdocs.microsoft.com%2Fen-us%2Fazure%2Fbread%2Ftoc.json ( VM Creation ) 
+			
+			- https://docs.microsoft.com/en-us/azure/virtual-machines/linux/ansible-manage-linux-vm?toc=https%3A%2F%2Fdocs.microsoft.com%2Fen-us%2Fazure%2Fansible%2Ftoc.json&bc=https%3A%2F%2Fdocs.microsoft.com%2Fen-us%2Fazure%2Fbread%2Ftoc.json ( Manage Azure Resources )
+			
+			- https://docs.microsoft.com/en-us/azure/ansible/ansible-manage-azure-dynamic-inventories  ( manage dynamic inventories )
+			
+			- Deploying Node application	
+					https://www.mbejda.com/deploying-node-applications-with-ansible/
+			
+			- Create Service Principle
+				az ad sp create-for-rbac --name AICameraScript
+				Changing "AICameraScript" to a valid URI of "http://AICameraScript", which is the required format used for service principal names
+				Creating a role assignment under the scope of "/subscriptions/afec1396-11ad-437f-af7c-cd2035e24075"
+				  Retrying role assignment creation: 1/36
+				  Retrying role assignment creation: 2/36
+				{
+				  "appId": "76a24d94-a37d-4a77-b33d-b0bfc8759be9",
+				  "displayName": "AICameraScript",
+				  "name": "http://AICameraScript",
+				  "password": "8cf5e10d-b1b2-478a-81d8-374f49d780c0",
+				  "tenant": "4984ed6c-2b33-4532-b600-4eceb5b87a74"
+				}
+				
+			- Get existing service principla
+				az ad sp list --show-mine --query "[].{id:76a24d94-a37d-4a77-b33d-b0bfc8759be9, tenant:4984ed6c-2b33-4532-b600-4eceb5b87a74}"
+				az ad sp list --show-mine

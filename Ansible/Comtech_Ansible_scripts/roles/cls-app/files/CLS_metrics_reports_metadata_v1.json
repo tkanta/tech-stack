@@ -1,0 +1,60 @@
+{
+    "reportGenerator": {
+        "baseRuleDef": {
+            "reportType": "OM",
+            "reportInterval": "00:15",
+            "outputFileExtension": "csv",
+            "reportStorageLocation": "/opt/tcs/dlp/log/om_consumer",
+            "delimiter": ","
+        },
+        "reports": [
+            {
+                "reportName": "DLP73_CLS_metrics",
+                "isAggregatedReport": false,
+				"addPodName": true,
+                "addHostName": true,
+                "reportNamePattern": "{{REPORTNAME}}_{{yyyy-MM-dd}}_{{yyyy-MM-dd}}_{{yyyy-MM-dd_HHmmss}}",
+                "reportFieldSequence": [
+                    "CollectionServer.Post.Received",
+                    "CollectionServer.Post.Success",
+                    "CollectionServer.Post.Failure",
+                    "CollectionServer.Get.Received",
+                    "CollectionServer.Get.Success",
+                    "CollectionServer.Get.Failure"
+                ],
+                "reportFieldMapper": [
+                    {
+                        "fieldName": "CollectionServer.Post.Received.value",
+                        "reportHeader": "CollectionServer.Post.Received",
+                        "defaultValue": "NaN"
+                    },
+                    {
+                        "fieldName": "CollectionServer.Post.Success.value",
+                        "reportHeader": "CollectionServer.Post.Success",
+                        "defaultValue": "NaN"
+                    },
+                    {
+                        "fieldName": "CollectionServer.Post.Failure.value",
+                        "reportHeader": "CollectionServer.Post.Failure",
+                        "defaultValue": "NaN"
+                    },
+                    {
+                        "fieldName": "CollectionServer.Get.Received.value",
+                        "reportHeader": "CollectionServer.Get.Received",
+                        "defaultValue": "NaN"
+                    },
+                    {
+                        "fieldName": "CollectionServer.Get.Success.value",
+                        "reportHeader": "CollectionServer.Get.Success",
+                        "defaultValue": "NaN"
+                    },
+                    {
+                        "fieldName": "CollectionServer.Get.Failure.value",
+                        "reportHeader": "CollectionServer.Get.Failure",
+                        "defaultValue": "NaN"
+                    }
+                ]
+            }
+        ]
+    }
+}

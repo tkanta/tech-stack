@@ -1,0 +1,27 @@
+
+# IMP: Make sure to set the CONFIG_PATH Env variable either in K8 manifest or hardcode here to run the server
+
+export ENABLE_CERT_VALIDATION={{ ENABLE_CERT_VALIDATION | default(true) | lower}}
+export WORKER_NODE_NAME=$HOSTNAME
+export SHARED_VOLUME_PATH={{ collection_server.shared_volume_path | default('/usr/lib/collectionServer')}}
+
+TEST_CRED={{ collection_server.default_cred }}
+
+chmod -R 755 ./src/util/
+if [ "$testEnv" == "true" ]; then
+    ./src/util/dlpuser.js --redisNode $redisHost --redisPort $redisPort --debug --add --credentials $TEST_CRED
+else
+    prodHost=`jq -r '.redis.redisSentinels.hosts[0].host' $SHARED_VOLUME_PATH/collectionconfig/config.json`
+    prodPort=`jq -r '.redis.redisSentinels.hosts[0].port' $SHARED_VOLUME_PATH/collectionconfig/config.json`
+    prodMaster=`jq -r '.redis.redisSentinels.name' $SHARED_VOLUME_PATH/collectionconfig/config.json`
+    ./src/util/dlpuser.js --redisNode $prodHost --redisPort $prodPort --name $prodMaster --redisSentinels true --add --credentials $TEST_CRED
+fi
+
+if [ $ENABLE_CERT_VALIDATION == "false" ]
+then
+    echo '.. enable cert validation is false '
+    export NODE_TLS_REJECT_UNAUTHORIZED=0
+fi
+
+npm run startProd
+

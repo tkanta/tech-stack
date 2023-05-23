@@ -1,0 +1,17 @@
+{
+    "delimiter": ",",
+    "fixed": { "ONE" : 1, "EMPTY" : "", "ldrType" : "509" },
+    "filepattern": "{{ ldr.file_prefix | default('%s_') }}ldr_cls_els{{ ldr.file_suffix | default('_%d') }}.csv",
+    "mappedFields": { "requestTransactionId" : "appid"},
+    "mapping": {
+      "coreusage://collection/els_push" : ["ldrType","date","hostName","origIP","isSyncFromMate",
+      "version","thunderbirdVersion","emergencyNumber","activationSource",
+      "time","gtLocationLatitude","gtLocationLongitude","locationTime","locationLatitude",
+        "locationLongitude","locationAltitude","locationAccuracy","locationVerticalAccuracy",
+        "locationBearing","locationSpeed","locationConfidence","locationSource","locationFloor",
+        "deviceNumber","deviceModel","deviceImei","deviceImsi","deviceIccid",
+        "cellHomeMcc","cellHomeMnc","cellNetworkMcc","cellNetworkMnc"]
+    },
+    "outputDirectoryName": "els_push",
+    "licenseRequired": ["collection"]
+}

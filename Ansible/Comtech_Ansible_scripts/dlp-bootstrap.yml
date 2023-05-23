@@ -1,0 +1,109 @@
+---
+- hosts: all
+  gather_facts: yes
+  user: centos
+  become: yes
+  become_method: sudo
+
+  vars_files:
+    - dlpconfig.yml
+
+  vars:
+    bootstrap: true
+
+  pre_tasks:
+    - name: "Stop and disable firewalld by default"
+      service: name=firewalld  state=stopped  enabled=no
+
+    - name: "sysctl overrides"
+      sysctl: name="{{ item.name }}"  value="{{ item.value }}"  state=present  sysctl_set=yes
+      with_items: "{{ dlp.hosts[inventory_hostname]['sysctl'] }}"
+      when: "'testhosts' not in group_names"
+
+    - name: "java.security update"
+      template: dest=/usr/lib/jvm/jre/lib/security/java.security src=java.security.j2 backup=yes
+      when: "'testhosts' not in group_names"
+
+    - name: "etcd - enable and start immediately with default configuration"
+      service: name=etcd state=started enabled=yes
+      when: inventory_hostname == "config"
+
+  roles:
+    - { role: set-hostname, when: "'testhosts' not in group_names" }
+    - etc_hosts
+    - { role: network-routes, tags: routes, when: "'testhosts' not in group_names" }
+    - { role: resolv-conf, when: "'testhosts' not in group_names" }
+    - { role: rsyslog, when: "'testhosts' not in group_names" }
+    - { role: yum, when: productionenv is defined and not productionenv|bool }
+    - { role: metadata, when: "'testhosts' not in group_names" }
+    - { role: sdmgr, when: "'testhosts' not in group_names" }
+    - { role: siteid, when: "'testhosts' not in group_names" }
+# zookeeper and kafka
+    - { role: zookeeper, when: "'kafkanodes' in group_names" }
+    - { role: kafka, when: "'kafkanodes' in group_names" }
+    - { role: kafka_topics, tags: create_kafka_topics, when: inventory_hostname == "config" }
+
+# UAM
+    - { role: uam_server_setup, when: "'ldapservers' in group_names" }
+    - { role: uam_server_config, when: "'ldapservers' in group_names and (ldapmigration is undefined or not ldapmigration|bool)" }
+    - { role: uam_server_recovery, when: "'ldapservers' in group_names and (ldapmigration is defined and ldapmigration|bool)" }
+    - { role: uam_server_upgradeconfigs, when: "'ldapservers' in group_names and (ldapmigration is defined and ldapmigration|bool)" }
+    - { role: uam_client_setup, when: "'ldapclients' in group_names" }
+    - { role: sssd, when: "'testhosts' not in group_names" }
+    - { role: permissions, when: "'testhosts' not in group_names" }
+
+# HA-Postgres
+    - { role: postgresql-master-with-failover, when: inventory_hostname == postgres.master_hostname }
+    - { role: postgresql-slave-with-failover, when: inventory_hostname == postgres.slave1_hostname or inventory_hostname == postgres.slave2_hostname }
+    - { role: postgresql-witness, when: inventory_hostname == postgres.witness1_hostname or inventory_hostname == postgres.witness2_hostname }
+    - { role: haproxy-postgresql, when: inventory_hostname == postgres.master_hostname or inventory_hostname == postgres.slave1_hostname or inventory_hostname == postgres.slave2_hostname }
+
+# HA-REDIS for DLP CONSUMERS
+    - role: redis-custom
+      tags: redis-6379
+      redis_target_name: 6379
+      redis_master_name: mymaster
+      redis_master_host_name: config
+      redis_port: 6379
+      sentinel_port: 26379
+      when: "'testhosts' not in group_names"
+# HA-REDIS for GMLC
+    - role: redis-custom
+      tags: redis-gmlc
+      redis_target_name: gmlc
+      redis_master_name: gmlcmaster
+      redis_master_host_name: admin2
+      redis_port: 6380
+      sentinel_port: 26380
+      down_after_ms: "{{ gmlc.redis.down_after_ms }}"
+      when: "gmlc_enabled|bool and 'testhosts' not in group_names"
+# HA-REDIS for Collection Server
+    - role: redis-custom
+      tags: redis-6381
+      redis_target_name: cls
+      redis_master_name: mymaster
+      redis_master_host_name: admin2
+      redis_port: 6381
+      sentinel_port: 26381
+      when: "cls_enabled|bool and 'testhosts' not in group_names"
+
+    - { role: file-service, when: inventory_hostname == "config" }
+
+    - { role: autotest, when: "'testhosts' in group_names" }
+
+    - { role: keystore, when: inventory_hostname == "config" }
+    - { role: dashboard_ldap, when: inventory_hostname == "config" }
+    - { role: dashboard, when: inventory_hostname == "config" }
+    - { role: hcmgr, when: inventory_hostname == "config" }
+# HAPROXY for OAM - running only on configVM and no VIP/keepalived
+    - { role: haproxy-oam, when: inventory_hostname == "config" }
+# Regenerate ssh keys for subset of system accounts
+    - { role: key_actor, when: "'testhosts' not in group_names"  }
+
+    - { role: mlc-oam, tags: vmlc, when: "'mlcoampus' in group_names" }
+    - { role: mlc-app, tags: vmlc, when: "'mlclspus' in group_names" }
+
+    - { role: gmlc-app, tags: gmlc, when: "gmlc_enabled|bool" }
+    
+# Collection Server
+    - { role: cls-app, tags: cls, when: "(inventory_hostname == 'config' or 'appnodes' in group_names) and (cls_enabled|bool)" }    

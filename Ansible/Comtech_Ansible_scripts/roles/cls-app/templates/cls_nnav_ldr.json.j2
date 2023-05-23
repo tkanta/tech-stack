@@ -1,0 +1,13 @@
+{
+    "delimiter": ",",
+    "fixed": { "ONE" : 1, "EMPTY" : "", "ldrType" : "508" },
+    "filepattern": "{{ ldr.file_prefix | default('%s_') }}ldr_cls_nnav{{ ldr.file_suffix | default('_%d') }}.csv",
+    "mappedFields": { "requestTransactionId" : "appid"},
+    "mapping": {
+      "coreusage://collection/nnav_push" : ["ldrType","date","hostName","origIP",
+      "rtid","imsi","imei","alt","altUnc","lat","lon","locationUnc",
+      "posTimestamp","callTimestamp","deviceTimestamp","serverTimestamp","statusCode"]
+    },
+    "outputDirectoryName": "nnav_push",
+    "licenseRequired": ["collection"]
+}

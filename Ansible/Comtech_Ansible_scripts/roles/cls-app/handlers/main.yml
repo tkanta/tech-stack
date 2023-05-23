@@ -1,0 +1,5 @@
+---
+
+- name: restart collectionServer
+  service: name=collectionServer.service state=restarted enabled=yes
+

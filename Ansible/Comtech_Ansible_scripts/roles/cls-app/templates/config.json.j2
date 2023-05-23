@@ -1,0 +1,45 @@
+{
+  "port": {{ CollectionServer.port | default(8843) }},
+  "baseUrl": "/collection/v1",
+  "statusPath": "/status",
+  "elsPath": "/els",
+  "zaxisPath": "/zaxis",
+  "consumerPath": "/query",
+  "hcs_profile"      : "{{ CollectionServer.hcs_profile | default('collectionServer') }}",
+  "hcs_desc"         : "{{ CollectionServer.hcs_desc | default('Collection Server') }}",
+  "debug"            : {{ CollectionServer.debug | default(false) | lower }},
+  "info"             : {{ CollectionServer.info | default(false) | lower }}, 
+  "runDaemon"        : {{ CollectionServer.runDaemon | default(false) | lower }},
+  "logTransactions"  : {{ CollectionServer.logTransactions | default(false) | lower }},
+  "collectionLogPath": "{{ CollectionServer.collectionLogPath | default('/tcs/var/log/collectionServer') }}",
+  "processName"      : "{{ CollectionServer.processName | default('CollectionServer') }}",
+  "eventXMLpath"     : "{{ CollectionServer.eventXMLpath | default('../../meta/xml') }}",
+  "serverUrls"       : ["{{ Collection.PrimaryServer.URL | default('') }}", "{{ Collection.SecondaryServer.URL | default('') }}"],
+  "mateRetryCount"   : {{ CollectionServer.mateRetryCount | default(3) }},
+  "horizUncertainty" : {{ CollectionServer.horizUncertainty | default(500) }},
+  "elsConfidence"    : {{ CollectionServer.elsConfidence | default(68) }},
+  "hmac": {
+    "secret": "{{ CollectionServer.hmac.secret | default('Setec Astronomy') }}",
+    "hashAlgorithm": "{{ CollectionServer.hmac.hashAlgorithm | default('sha1') }}"
+  },  
+ "crypto": {
+     "cryptoKeyMap"     : "{{ CollectionServer.crypto.cryptoKeyMap | default('d6F3Efeq') }}",
+     "cryptoAlgorithm"  : "{{ CollectionServer.crypto.cryptoAlgorithm | default('aes-256-ctr') }}"
+  },
+ "redis" : {
+     "redisHost"  : "localhost",
+     "redisPort"  : 6379,
+     "dlpRedisSentinels": {{ CollectionServer.redis.dlpRedisSentinels | default(true) | lower }},
+     "redisSentinels"  : { "hosts" : [ {"host" : "{{ inventory_hostname | default('service1') }}", "port" : {{ CollectionServer.redis.sentinel.port | default(26381) }} }], "name"  : "{{ CollectionServer.redis.sentinel.name | default('mymaster') }}"},
+     "redisRetention"   : {{ collection_server.redis.redis_retention | default(60) }}, 
+     "redisCreds"       : "ZGxwOmRscHJlZGlzCg==",
+     "retryConnection"  : {{ CollectionServer.redis.retryConnection | default(3) }}
+   },
+  "kafka": {
+    "kafkaBrokerList": "{{ kafka.broker_list | default('kafka1.local:9092,kafka2.local:9092,kafka3.local:9092') }}",
+    "omTopic": "{{ CollectionServer.omTopic | default('OM') }}",
+    "eventTopic": "{{ CollectionServer.eventTopic | default('EVENT') }}",
+    "ldrTopic": "{{ CollectionServer.ldrTopic | default('LDR') }}",
+    "matricsReportInterval": {{ CollectionServer.matricsReportInterval | default(60) }}
+  }
+}

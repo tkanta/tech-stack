@@ -1,0 +1,614 @@
+productionenv: true
+mlc_enabled: true
+gmlc_enabled: true
+cls_enabled: false
+
+# external timeservers - specify provider or public timeservers reachable from config and admin VMs
+ntp_timeservers_external: |
+  server 10.32.12.32
+  server 10.32.12.33
+
+# internal timeservers - local timeservers running on config and admin VMs - DO NOT CHANGE
+ntp_timeservers_internal: |
+  server ntp-1.local iburst
+  server ntp-2.local iburst
+  server ntp-3.local iburst
+
+nms_dest_list: "10.36.148.26:162" # specify a comma separated list of nms_server url="host1:port1,host2:port2"
+nms_snmp_community_string: "public"
+
+dlp_multi_addr: 230.185.192.108 # UPGRADE: set to 230.185.192.118 for GREEN VMs
+dlp_multi_port: 15000           # UPGRADE: set to 14000 for GREEN VMs
+dlp_multi_vrid: 210             # UPGRADE: set to 211 for GREEN VMs
+
+ha_postgres_vrid_pgvip: 51      # UPGRADE: set to 61 for GREEN VMs
+ha_postgres_vrid_pgmaster: 52   # UPGRADE: set to 62 for GREEN VMs
+
+################################################
+# MLC-specific configurables and overrides
+mlc:
+  # set "ansi" or "itu" depending on deployment
+  transport_mode: "itu"
+  site_name: "{{ siteid }}"
+  site_description: "vMLC 1.8.0 site {{ siteid }}"
+  pointcode: "{{ pointcode }}"
+  # Place any required additions to /opt/LC/current/etc/overrides.conf here, using yaml multiline syntax
+  overrides: |
+
+  # Place any required additions to /var/opt/LC/ngls/ngls_overrides.cfg here, using yaml multiline syntax
+  ngls_overrides: |
+
+################################################
+# XLP-GMLC-specific configurables and overrides
+gmlc:
+  redis:
+    down_after_ms: 6001
+
+################################################
+# Collection Server specific configurables and overrides
+collection_server:
+  # base64 encoded username:password
+  default_cred: Y29sbGVjdGlvbjpjb2xsZWN0aW9u
+  redis:
+    redis_retention: 60
+
+################################################
+# Collection common configurables and overrides
+# TODO: This data has to be updated with actual server URLs
+Collection:
+  PrimaryServer:
+    URL: server1
+  SecondaryServer:
+    URL: server2
+
+################################################
+# Default Logrotation configs
+logrotate_default:
+  rotation: "daily"
+  retention: "7"
+  compress_mode: "compress"
+  when_empty: "notifempty"
+  if_missing: "missingok"
+
+################################################
+fileservice:
+  server_cfg_store: "/dlpArchive/"
+  api_service_path: "fserv/v1/files/"
+  api_service_home: "fserv/v1/"
+  retention:
+    backups: "31"
+    ldr: "31"
+    om: "31"
+  compress:
+    backups: "true"
+    ldr: "true"
+    om: "true"
+
+################################################
+healthcheck:
+  warn_score: 90
+  crit_score: 70
+  norm_code: 200
+  warn_code: 503
+  crit_code: 504
+  backing_store: redis # redis or etcd, redis is default
+  backing_store_host: localhost # default is localhost configVM
+  backing_store_port: 8279 # default is port 8279 fserv redis
+################################################
+dashboard:
+  snmp_rows_limit: 200
+  version: "vMLC-1.8.0.4-202108160801-B"
+  title: "Dynamic Location Platform"
+  site_name: "siteid={{ siteid }}"
+  datasource_url: "jdbc:postgresql://pgmaster:5432/postgres"
+  datasource_url_readonly: "jdbc:postgresql://pgmaster:5432/postgres"
+  healthcheck_totalcount_vm: 5
+  ldr_reader_root_directory: /dlpArchive/fserv/v1/files
+  listen_port: 9443
+  ssl_enabled_protocols: "TLSv1.2" # comma-delimited list of enabled protocols, e.g. "TLSv1.1,TLSv1.2"
+  ssl_ciphers: "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384" # set to "" to disable strong ciphers
+  corba_pass: "ENC(AGlBQBlDlfsBvYsZVEfsWNXNMRK5o9Tz)"
+  datasource_pass: "ENC(gpPejN0dsD/OG7HqjnEdRg==)"
+  ssl_key_store_type: PKCS12
+  ssl_key_store: /tcs/dlp/config/keystore.p12
+  ssl_key_store_pass: "ENC(INsjsoG6JlNqCzznRT4lbQ==)"
+  ssl_key_alias: dashkey
+  monit_pass: "ENC(mgdq4MgG+Ixt1PfDncbCZsNsIAFDAjsQ)"
+  batch_trigger_milliseconds: 60000
+  derived_retention_days: 7
+  derived_tps_retention_days: 1
+  max_retain_file_limit: 20
+  check_data_after_copy_attempts: 100
+  check_data_after_copy_delay_millis: 1000
+  localTimezoneOffset: "MM-dd-yyyy HH:mm:ssZ"
+################################################
+# Set cron frequency for local and site level backups in cron time format
+# The Cron time string is five values separated by spaces: minute(0-59) hour(0-23) day-of-month(1-31) month(1-12) day-of-week(0-7)
+# ex: 01 01 * * * -> cron executes 01:01am every day
+local_backup_frequency_cron: "01 01 * * *"
+site_backup_frequency_cron: "01 02 * * *"
+local_backup_default_timeout: "1800"
+db_integrityCheck_frequency_cron: "06,21,36,51 * * * *"
+######################################################
+kafka:
+# list of kafka brokers used by the consumers - DO NOT CHANGE
+  broker_list: "kafka1.local:9092,kafka2.local:9092,kafka3.local:9092"
+# zookeeper connect string used to configure kafka - DO NOT CHANGE
+  zookeeper_connect: "kafka1.local:2181,kafka2.local:2181,kafka3.local:2181/kafka"
+# Replication factor for the 3 node kafka/zookeeper cluster - DO NOT CHANGE
+  replication_factor: "3"
+# List of kafka topics and retention times - DO NOT DELETE the list here; add more topics to the list if needed
+  topics_list:
+    - name: "EVENT"
+      retention: "604800000" # 7 days
+    - name: "LDR"
+      retention: "604800000" # 7 days
+    - name: "OM"
+      retention: "604800000" # 7 days
+    - name: "TRACE-GLOBAL-JSON"
+      retention: "604800000" # 7 days
+    - name: "TRACE-KEYS-JSON"
+      retention: "604800000" # 7 days
+    - name: "EVENT-OUTPUT"
+      retention: "86400000"  # 1 day
+    - name: "SYNC-CALLCACHE"
+      retention: "86400000"  # 1 day
+
+# Custom logrotate configs for kafka logs; uncomment the following and update as required
+#  log_rotation: ""
+#  log_retention: ""
+#  log_compress_mode: ""
+#  log_when_empty: "notifempty"
+#  log_if_missing: "missingok"
+######################################################
+dlp:
+  hosts:
+    config:
+      kafka_index: "1"
+      fqdn: "config.local"
+      adv_fqdn: "kafka1.local"
+      ntp_timeservers: |
+        {{ ntp_timeservers_external }}
+      ntp_allowlist: ""
+      routes:
+        - interface: eth0
+          routes: |
+            224.0.0.0/4 dev eth0
+        - interface: eth1
+          routes: |
+            10.32.120.0/24 dev eth1
+            10.36.128.0/26 via 10.32.120.1 dev eth1
+            10.32.121.0/27 via 10.36.146.1 dev eth1
+      resolvconf: |
+        options single-request-reopen
+        nameserver 10.32.12.32
+        nameserver 10.32.12.33
+      repmgr:
+        enabled: true
+        node_id: "1"
+        node_name: "config"
+        connect_timeout: 5
+      sysctl:
+        - { name: "net.ipv4.tcp_retries2", value: "6" }
+        - { name: "net.ipv4.tcp_syn_retries", value: "4" }
+        - { name: "vm.overcommit_memory", value: "1" }
+        - { name: "net.ipv4.conf.default.accept_redirects", value: "0" }
+        - { name: "net.ipv4.conf.all.secure_redirects", value: "0" }
+        - { name: "net.ipv4.conf.default.secure_redirects", value: "0" }
+        - { name: "net.ipv4.ip_local_reserved_ports", value: "2181,2379-2380,2783,2812,5400,5432,6379-6380,7429-7433,8279,8281,8993,8995,9000,9092,9162,9443,26379-26380,29000-29001" }
+        - { name: "net.core.somaxconn", value: "512" }
+        - { name: "net.ipv4.tcp_abort_on_overflow", value: "1" }
+        - { name: "net.ipv4.tcp_max_syn_backlog", value: "4096" }
+      splunkuf_enabled: false
+      splunkuf_monitored:
+        - target_file_pattern: /home/*/.bash_history
+          target_dest_index: dlp_bash_history
+          target_source_type: bash_history_raw
+        - target_file_pattern: /var/log/audit/audit.log*
+          target_dest_index: dlp_auditD
+          target_source_type: linux_audit
+        - target_file_pattern: /opt/tcs/dlp/log/audit/audit*.csv
+          target_dest_index: dlp_rest_proxy_api
+          target_source_type: csvnoheader
+        - target_file_pattern: /archive/log/events/event_consumer.txt*
+          target_dest_index: dlp_debug
+          target_source_type: prefix_then_json
+        - target_file_pattern: /var/log/secure*
+          target_dest_index: dlp_logins
+          target_source_type: linux_secure
+        - target_file_pattern: /dlpArchive/fserv/v1/files/*/*.csv.gz
+          target_dest_index: dlp_apps
+          target_source_type: csvnoheader
+    admin1:
+      kafka_index: "2"
+      fqdn: "admin1.local"
+      adv_fqdn: "kafka2.local"
+      ntp_timeservers: |
+        {{ ntp_timeservers_external }}
+      ntp_allowlist: ""
+      routes:
+        - interface: eth0
+          routes: |
+            224.0.0.0/4 dev eth0
+        - interface: eth1
+          routes: |
+            10.32.120.0/24 dev eth1
+            10.36.128.0/26 via 10.32.120.1 dev eth1
+            10.32.121.0/27 via 10.36.146.1 dev eth1
+      resolvconf: |
+        options single-request-reopen
+        nameserver 10.32.12.32
+        nameserver 10.32.12.33
+      repmgr:
+        enabled: true
+        node_id: "2"
+        node_name: "admin1"
+        connect_timeout: 5
+      sysctl:
+        - { name: "net.ipv4.tcp_retries2", value: "6" }
+        - { name: "net.ipv4.tcp_syn_retries", value: "4" }
+        - { name: "vm.overcommit_memory", value: "1" }
+        - { name: "net.ipv4.conf.default.accept_redirects", value: "0" }
+        - { name: "net.ipv4.conf.all.secure_redirects", value: "0" }
+        - { name: "net.ipv4.conf.default.secure_redirects", value: "0" }
+        - { name: "net.ipv4.ip_local_reserved_ports", value: "2181,2379-2380,2783,2812,5400,5432,6379-6380,7429-7433,8279,8281,8993,8995,9000,9092,9162,9443,26379-26380,29000-29001" }
+        - { name: "net.core.somaxconn", value: "512" }
+        - { name: "net.ipv4.tcp_abort_on_overflow", value: "1" }
+        - { name: "net.ipv4.tcp_max_syn_backlog", value: "4096" }
+      splunkuf_enabled: false
+      splunkuf_monitored:
+        - target_file_pattern: /home/*/.bash_history
+          target_dest_index: dlp_bash_history
+          target_source_type: bash_history_raw
+        - target_file_pattern: /var/log/audit/audit.log*
+          target_dest_index: dlp_auditD
+          target_source_type: linux_audit
+        - target_file_pattern: /var/log/secure*
+          target_dest_index: dlp_logins
+          target_source_type: linux_secure
+    admin2:
+      kafka_index: "3"
+      fqdn: "admin2.local"
+      adv_fqdn: "kafka3.local"
+      ntp_timeservers: |
+        {{ ntp_timeservers_external }}
+      ntp_allowlist: ""
+      routes:
+        - interface: eth0
+          routes: |
+            224.0.0.0/4 dev eth0
+        - interface: eth1
+          routes: |
+            10.32.120.0/24 dev eth1
+            10.36.128.0/26 via 10.32.120.1 dev eth1
+            10.32.121.0/27 via 10.36.146.1 dev eth1
+      resolvconf: |
+        options single-request-reopen
+        nameserver 10.32.12.32
+        nameserver 10.32.12.33
+      repmgr:
+        enabled: true
+        node_id: "3"
+        node_name: "admin2"
+        connect_timeout: 5
+      sysctl:
+        - { name: "net.ipv4.tcp_retries2", value: "6" }
+        - { name: "net.ipv4.tcp_syn_retries", value: "4" }
+        - { name: "vm.overcommit_memory", value: "1" }
+        - { name: "net.ipv4.conf.default.accept_redirects", value: "0" }
+        - { name: "net.ipv4.conf.all.secure_redirects", value: "0" }
+        - { name: "net.ipv4.conf.default.secure_redirects", value: "0" }
+        - { name: "net.ipv4.ip_local_reserved_ports", value: "2181,2379-2380,2783,2812,5400,5432,6379-6380,7429-7433,8279,8281,8993,8995,9000,9092,9162,9443,26379-26380,29000-29001" }
+        - { name: "net.core.somaxconn", value: "512" }
+        - { name: "net.ipv4.tcp_abort_on_overflow", value: "1" }
+        - { name: "net.ipv4.tcp_max_syn_backlog", value: "4096" }
+      splunkuf_enabled: false
+      splunkuf_monitored:
+        - target_file_pattern: /home/*/.bash_history
+          target_dest_index: dlp_bash_history
+          target_source_type: bash_history_raw
+        - target_file_pattern: /var/log/audit/audit.log*
+          target_dest_index: dlp_auditD
+          target_source_type: linux_audit
+        - target_file_pattern: /var/log/secure*
+          target_dest_index: dlp_logins
+          target_source_type: linux_secure
+    service1:
+      ntp_timeservers: |
+        {{ ntp_timeservers_internal }}
+      routes:
+        - interface: eth0
+          routes: |
+            224.0.0.0/4 dev eth0
+        - interface: eth1
+          routes: |
+            10.32.119.0/25 via 10.36.152.1 dev eth1
+        - interface: eth2
+          routes: |
+            10.32.119.128/25 via 10.36.153.1 dev eth2
+        - interface: eth5
+          routes: |
+            10.32.120.0/24 dev eth5
+            10.36.128.0/26 via 10.32.120.1 dev eth5
+            10.32.121.0/27 via 10.36.146.1 dev eth5
+      resolvconf: |
+        options single-request-reopen
+        nameserver 10.32.12.32
+        nameserver 10.32.12.33
+      repmgr:
+        enabled: true
+        node_id: "4"
+        node_name: "service1"
+        connect_timeout: 5
+      sysctl:
+        - { name: "net.ipv4.tcp_retries2", value: "6" }
+        - { name: "net.ipv4.tcp_syn_retries", value: "4" }
+        - { name: "net.ipv4.conf.default.accept_redirects", value: "0" }
+        - { name: "net.ipv4.conf.all.secure_redirects", value: "0" }
+        - { name: "net.ipv4.conf.default.secure_redirects", value: "0" }
+        - { name: "net.ipv4.ip_local_reserved_ports", value: "2181,2379-2380,2783,2812,5400,5432,6379-6380,7429-7433,8279,8281,8993,8995,9000,9092,9162,9443,26379-26380,29000-29001" }
+        - { name: "net.core.somaxconn", value: "512" }
+        - { name: "net.ipv4.tcp_abort_on_overflow", value: "1" }
+        - { name: "net.ipv4.tcp_max_syn_backlog", value: "4096" }
+      splunkuf_enabled: false
+      splunkuf_monitored:
+        - target_file_pattern: /home/*/.bash_history
+          target_dest_index: dlp_bash_history
+          target_source_type: bash_history_raw
+        - target_file_pattern: /var/log/audit/audit.log*
+          target_dest_index: dlp_auditD
+          target_source_type: linux_audit
+        - target_file_pattern: /var/log/secure*
+          target_dest_index: dlp_logins
+          target_source_type: linux_secure
+    service2:
+      ntp_timeservers: |
+        {{ ntp_timeservers_internal }}
+      routes:
+        - interface: eth0
+          routes: |
+            224.0.0.0/4 dev eth0
+        - interface: eth1
+          routes: |
+            10.32.119.0/25 via 10.36.152.1 dev eth1
+        - interface: eth2
+          routes: |
+            10.32.119.128/25 via 10.36.153.1 dev eth2
+        - interface: eth5
+          routes: |
+            10.32.120.0/24 dev eth5
+            10.36.128.0/26 via 10.32.120.1 dev eth5
+            10.32.121.0/27 via 10.36.146.1 dev eth5
+      resolvconf: |
+        options single-request-reopen
+        nameserver 10.32.12.32
+        nameserver 10.32.12.33
+      repmgr:
+        enabled: true
+        node_id: "5"
+        node_name: "service2"
+        connect_timeout: 5
+      sysctl:
+        - { name: "net.ipv4.tcp_retries2", value: "6" }
+        - { name: "net.ipv4.tcp_syn_retries", value: "4" }
+        - { name: "net.ipv4.conf.default.accept_redirects", value: "0" }
+        - { name: "net.ipv4.conf.all.secure_redirects", value: "0" }
+        - { name: "net.ipv4.conf.default.secure_redirects", value: "0" }
+        - { name: "net.ipv4.ip_local_reserved_ports", value: "2181,2379-2380,2783,2812,5400,5432,6379-6380,7429-7433,8279,8281,8993,8995,9000,9092,9162,9443,26379-26380,29000-29001" }
+        - { name: "net.core.somaxconn", value: "512" }
+        - { name: "net.ipv4.tcp_abort_on_overflow", value: "1" }
+        - { name: "net.ipv4.tcp_max_syn_backlog", value: "4096" }
+      splunkuf_enabled: false
+      splunkuf_monitored:
+        - target_file_pattern: /home/*/.bash_history
+          target_dest_index: dlp_bash_history
+          target_source_type: bash_history_raw
+        - target_file_pattern: /var/log/audit/audit.log*
+          target_dest_index: dlp_auditD
+          target_source_type: linux_audit
+        - target_file_pattern: /var/log/secure*
+          target_dest_index: dlp_logins
+          target_source_type: linux_secure
+
+######################################################
+# NMS host for legacy traps are set to 127.0.0.1 to deliberately blackhole legacy traps in production env
+ems:
+  nms_host_list_legacyonly: 127.0.0.1:162
+  snmp_mode: "1"
+# Custom logrotate configs for ems logs; uncomment the following and update as required
+#  log_rotation: ""
+#  log_retention: "10"
+#  log_compress_mode: ""
+  log_when_empty: "ifempty"
+#  log_if_missing: "missingok"
+  thresholds:
+    loadavg_exceed_limit: 67.89
+    loadavg_warn_limit: 36.7
+
+snmptrapd:
+# Custom logrotate configs for snmptrapd logs; uncomment the following and update as required
+#  log_rotation: ""
+#  log_retention: "10"
+#  log_compress_mode: ""
+  log_when_empty: "ifempty"
+#  log_if_missing: "missingok"
+
+events_consumer:
+  nms_server_url: "{{ nms_dest_list }}"
+  retention_decay_time_days: "7" # controls number of days to retain EVENTS before purging
+  retention_decay_batch_size: "10000"
+  retention_max_num_faults: "1000" # controls max number of FAULT EVENTS to retain before purging
+  rediswriter: "false"
+  trapwriter: "true"
+  # EVENT-ID suppression patterns for Faults and Alarms
+  # Specify one or more comma-delimited regex patterns for EVENT ID's to suppress (do NOT send to NMS's)
+  # Specify empty string "" to disable suppression (all events will be sent to NMS's)
+  # Specify ".*" to suppress ALL
+  # Example pattern for suppressing all PLATFORM faults, and one specific MLC application fault:
+  #   suppress_fault_patterns: "PLATFORM-.*, MLC-CS01"
+  suppress_fault_patterns: ".*" # ".*" indicates suppression of ALL faults (do NOT send any Fault traps to NMS's)
+  suppress_alarm_patterns: ""   # "" empty string indicates that ALL alarms (raises and clears) should be sent to NMS's
+
+ldr_consumer:
+  roll_interval: "00:05:00"
+
+ltdr_enabled: true
+ltdr_consumer:
+  roll_scheduled_time: "00:00:00" # time of day for rolling LTDR's (once per day) in HH:MM:SS format
+  home_platform_association: "HOMEPLATASSOC"
+  home_platform_id: ""
+  networktype_lte: 1001
+  networktype_umts: 6
+  operator_name: "OPERNAME"
+  operator_id: "OPERID"
+  recording_entity: "TCS"
+  serving_platform_association: "SERVPLATASSOC"
+  serving_platform_id: "16475803800"
+  file_pattern: "OPERNAME_LTDR_file_%d_TCS_DLP.xml"
+  outputdirectory: "gmlc-immediate_transaction"
+
+######################################################
+zookeeper:
+# Custom logrotate configs for zookeeper logs; uncomment the following and update as required
+#  log_rotation: ""
+#  log_retention: ""
+#  log_compress_mode: ""
+#  log_when_empty: "notifempty"
+#  log_if_missing: "missingok"
+
+syslog:
+# Custom logrotate configs for system logs; uncomment the following and update as required
+#  log_rotation: ""
+#  log_retention: ""
+#  log_compress_mode: "nocompress"
+#  log_when_empty: "notifempty"
+#  log_if_missing: "missingok"
+
+postgres:
+  master_hostname: admin1
+  slave1_hostname: admin2
+  slave2_hostname: config
+  witness1_hostname: service1
+  witness2_hostname: service2
+  chk_pgmaster_interval: 3
+  chk_haproxy_interval: 2
+# Custom logrotate configs for postgres logs; uncomment the following and update as required
+#  log_rotation: "weekly"
+#  log_retention: ""
+#  log_compress_mode: ""
+#  log_when_empty: "notifempty"
+#  log_if_missing: "missingok"
+
+kafka_connector:
+# service_configs_standalone_mode is a space separated list of consumer config files
+# name of each properties file in service_configs_standalone_mode should be the same as referenced by 'name' in conector_list below
+# When  a new connector is added to the list, service_configs_standalone_mode must be updated to include it
+# This is only needed when the connector is configured in standalone mode; not used for distributed_mode
+  service_configs_standalone_mode: "/etc/kafka/event_consumer.properties /etc/kafka/trace_global_consumer.properties /etc/kafka/trace_keys_consumer.properties"
+  connector_list:
+    - name: "event_consumer"
+      topic: "EVENT"
+      description: "Event_Consumer"
+      file_path: "/archive/log/event"
+    - name: "trace_global_consumer"
+      topic: "TRACE-GLOBAL-JSON"
+      description: "Trace_Global_Consumer"
+      file_path: "/archive/log/trace"
+    - name: "trace_keys_consumer"
+      topic: "TRACE-KEYS-JSON"
+      description: "Trace_Keys_Consumer"
+      file_path: "/archive/log/trace"
+#  log_rotation: ""
+  log_retention: "31"
+#  log_compress_mode: ""
+  log_when_empty: "ifempty"
+#  log_if_missing: ""
+
+backup_template_list:
+  - name: "generic-etc"
+    content: |
+      {
+        "files": [
+          { "path": "/etc",
+            "filespec": [".conf", "hosts", ".cfg"]
+          }
+        ]
+      }
+
+om_consumer:
+  om_aggregation_level: "1m" # Supported values 10s,30s,1m,5m,1h
+  om_retention_days: 7
+  tps_retention_days: 1
+  derived_tps_retention_days: 1
+  data_retention_days: 1
+  report_generation_delay: 3
+  report_generation_time: 1
+
+event_service:
+  input_topics: "EVENT"
+  output_topic: "EVENT-OUTPUT"
+  min_allowed_event_count: 2
+  suppression_interval_min: 1
+  decay_time: 10080
+  rows_limit: 200
+
+user_home_backup:
+  exclude_users: "centos|dashapp|emob|emsadm|kafka|mlcsupp|pgbouncer|tcsadmin|tcsapp|zoo" # pipe-delimited list of users to exclude from backups
+  archive_working_dir: "/archive/dlpbackup/custom-users"
+  max_individual_filesize: "250" # files larger than this value will not be included in backups, unit is MB
+
+################################################
+# UPGRADE: for a BLUE-->GREEN upgrade, set the IP addresses below accordingly
+blue_config_ipaddr: ""
+blue_admin1_ipaddr: ""
+blue_admin2_ipaddr: ""
+blue_service1_ipaddr: ""
+blue_service2_ipaddr: ""
+blue_pgprimary_ipaddr: "{{ blue_config_ipaddr }}" # IMPORTANT: if BLUE's DB MASTER is NOT the configVM, specify the correct ip address here
+# UPGRADE: the vars below are set automatically, DO NOT CHANGE unless instructed to do so
+blue_uamprimary_ipaddr: "{{ blue_admin1_ipaddr }}"
+blue_fservice_ipaddr: "{{ blue_config_ipaddr }}"
+ldapmigration: "{{ true if (upgrade is defined) and (upgrade|bool) else false }}"
+dbmigration:   "{{ true if (upgrade is defined) and (upgrade|bool) else false }}"
+# UPGRADE: adjust (if needed) this list of dirs/files to transfer from BLUE configVM to GREEN configVM:/dlpArchive/blue/..
+#          NOTE: paths must be absolute, wildcards are supported, subdirs are included automatically
+#          EXAMPLE: BLUE:/opt/tcs/dlp/meta becomes GREEN:/dlpArchive/blue/_opt_tcs_dlp_meta.bz2
+#                     and unarchived to GREEN:/dlpArchive/blue/opt/tcs/dlp/meta/
+upgrade_transfer_list:
+  - /archive
+  - /dlpArchive
+  - /etc
+  - /home
+  - /opt/tcs/dlp/log
+  - /opt/tcs/dlp/meta
+  - /opt/LCdata
+  - /tcs/ansible
+  - /tcs/dlp
+  - /tcs/var/log
+  - /var/log
+  - /var/tmp/centos
+upgrade_transfer_archivetype:  bz2  # supported types: bz2, gz, tar, zip
+upgrade_transfer_unarchive:    true # automatically unarchive the above to the appropriate subdirs under /dlpArchive/blue
+upgrade_transfer_keeparchives: true # true=retain archives at /dlpArchive/blue/; false=delete archives after transfer
+
+cloudcfg_override: false # set to true to override /etc/cloud/cloud.cfg by rendering /tcs/ansible/templates/cloud.cfg.j2
+
+splunktr_enabled: false
+splunkuf_service:
+  version: "8.0.5"
+  artifact_path: "/home/centos/splunkforwarder-8.0.5-a1a6394cc5ae-linux-2.6-x86_64.rpm"
+  installation_parent_dir: "/opt"
+  splunkuf_user: "admin"
+  splunkuf_password: "pa55word"
+  output:
+    alias: "autotest"
+    ip: "{{ hostvars['autotest']['ansible_facts']['facter_ipaddress_eth0'] if hostvars['autotest'] is defined else '172.28.21.20' }}"
+    port: "9997"
+    compressed: false
+    destination_indexes:
+      - dlp_bash_history
+      - dlp_auditD
+      - dlp_rest_proxy_api
+      - dlp_debug
+      - dlp_logins
+      - dlp_apps

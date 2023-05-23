@@ -1,0 +1,34 @@
+
+With include on the task level Ansible expects a file with tasks only, not a full playbook. Yet you provide a full playbook as an argument.
+
+You could do it (include) on a play level, but it won't let you achieve what you want.
+
+The play with hosts: all defined will always run against all targets (unless you limit it in the command call or the inventory).
+
+Moreover, you will have troubles accessing the java_status value from the other playbook (if this was your goal).
+
+You need to rethink your structure, for example you can for example extract the task(s) and include them from both plays:
+-------------------------------------------------------------------------------------------------
+
+my_tasks.yml:
+- name: Check PID of existing Java process
+  shell: "ps -ef | grep [j]ava"
+  register: java_status
+
+  - debug: var=java_status.stdout
+
+check_java_pid.yml:
+---
+- hosts: all
+  gather_facts: no
+
+  tasks:
+    - include my_tasks.yml
+
+instance_restart.yml:
+---
+- hosts: instance_1
+  gather_facts: no
+
+  tasks:
+    - include: my_tasks.yml
