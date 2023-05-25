@@ -1,0 +1,140 @@
+
+============================================= overview =============================================
+
+helm will pick value file from default helm chart folder, but can be override using -f argument during helm cli command.
+	**helm install cls-bom-integration ./collection-server-helm-chart -f ./values.yaml -f ./bom_collection_server.yaml
+
+
+
+=============================================== Git Sample =============================================
+
+https://git.comtech-idn.com/location/dlp/dlpdepllib/tree/helmsamples/helm-chart/helmexperiments/helm/sampleapp/helloworld1/templates
+
+
+dlpdeplib bom:
+	https://git.comtech-idn.com/location/dlp/dlpdepllib/blob/pv-886/BOM-file/clsg_bom_3.1.0-10132021.yaml
+
+dashboard ref: ***
+	https://git.comtech-idn.com/location/dlp/dashcon/dashcon_deploy/tree/master/helm
+
+============================================= Confluence =============================================
+
+BOM location in release:
+	https://confluence.comtech-idn.com/pages/viewpage.action?pageId=134522850#vMLC4.0.0Releases&InterimReleases-CollectionServer1.0.33
+
+vMLC4.0.0 release notes:
+	https://confluence.comtech-idn.com/pages/viewpage.action?pageId=134522850#vMLC4.0.0Releases&InterimReleases-DashconIB6
+
+
+============================================= helm chart =============================================
+
+https://artifactory.comtech-idn.com/artifactory/helm-development-virtual/comtechtel/location/dlp/dlpdmaapif/helm-dmaap-2.0.0-dev.tgz
+https://artifactory.comtech-idn.com/artifactory/helm-development-virtual/comtechtel/location/positioning/zaxiscollectionserver/collection-server-helm-chart-1.0.31.tgz	
+
+
+============================================= Dashboard comparison =============================================
+
+https://git.comtech-idn.com/location/dlp/dlpdepllib/blob/pv-883/ansible/roles/k8s-manifests/templates/dashboard.yaml.j2
+https://git.comtech-idn.com/location/dlp/dashcon/dashcon_deploy/blob/master/helm/dashboard/templates/dashboard.yaml
+
+
+============================================= dlpdeplib BOM location =============================================
+
+https://git.comtech-idn.com/location/dlp/dlpdepllib/blob/pv-886/BOM-file/clsg_bom_3.1.0-10132021.yaml
+
+
+============================================= rfsp ingress =============================================
+
+spec:{{ if eq (int .Values.site_vips.vip1.srcPort) 443 }}
+spec:{{ if eq (int .Values.site_vips.vip5.srcPort) 443 }}
+
+https://artifactory.comtech-idn.com/artifactory/helm-development-local/comtechtel/location/positioning/rfspserver/rfsp-server-helm-chart-1.2.7.tgz
+
+
+============================================= docker image url =============================================
+
+docker-development-virtual.artifactory.comtech-idn.com/comtechtel/location/positioning/zaxiscollectionserver/collectionserver-common-init
+docker-development-virtual.artifactory.comtech-idn.com/comtechtel/location/dlp/dlphcmgr/healthcheck-init:2.0.0
+
+
+healthcheck:
+	docker-development-virtual.artifactory.comtech-idn.com/comtechtel/location/dlp/dlphcmgr/healthcheck
+	docker-development-virtual.artifactory.comtech-idn.com/comtechtel/location/dlp/dlphcmgr/healthcheck-init
+
+	https://artifactory.comtech-idn.com/artifactory/docker-development-virtual/comtechtel/location/dlp/dlphcmgr/healthcheck/
+
+============================================= HELM testing =============================================
+
+helm install helm-chart /path/helm-chart -f <values-file.yaml> -f <sbom.yaml>
+
+helm commands ->
+	helm list	
+	helm install --dry-run --debug ./mychart 
+	helm install cls-bom-integration ./collection-server-helm-chart -f ./values.yaml -f ./bom_collection_server.yaml
+	helm install cls-bom-integration ./collection-server-helm-chart -f ./values.yaml -f ./bom_collection_server_4x.yaml
+	helm uninstall cls-bom-integration
+	helm lint ./collection-server-helm-chart
+
+
+updates:
+	bom update 
+		- healthcheck tags
+		- collectionSever.yaml config-update image
+		- healthcheck-init: to healthcheck_init:
+
+command -> helm lint ./collection-server-helm-chart
+	Linting error ->
+	==> Linting ./collection-server-helm-chart
+	[INFO] Chart.yaml: icon is recommended
+	[ERROR] templates/: parse error at (collection-server-helm-chart/templates/collectionserver.yaml:54): bad character U+002D '-'
+
+	Error: 1 chart(s) linted, 1 chart(s) failed
+	[centos@C415-KMA-001 tarini]$ vim collection-server-helm-chart/templates/collectionserver.yaml
+
+
+
+
+k8s pods:
+	kubectl get pods | grep collection
+	 kubectl describe pod tarini-collectionserver-698c4f5466-qtmm4
+	 	  Events:
+		  Type     Reason     Age                 From               Message
+		  ----     ------     ----                ----               -------
+		  Normal   Scheduled  6m3s                default-scheduler  Successfully assigned default/tarini-collectionserver-698c4f5466-qtmm4 to c415-kwo-001
+		  Warning  Failed     59s                 kubelet            Failed to pull image "docker-development-virtual.artifactory.comtech-idn.com/comtechtel/location/dlp/dlphcmgr/healthcheck-init:2.0.0": rpc error: code = Unknown desc = Error response from daemon: Get "https://docker-development-virtual.artifactory.comtech-idn.com/v2/": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+		  Warning  Failed     59s                 kubelet            Error: ErrImagePull
+		  Normal   BackOff    59s                 kubelet            Back-off pulling image "docker-development-virtual.artifactory.comtech-idn.com/comtechtel/location/dlp/dlphcmgr/healthcheck-init:2.0.0"
+		  Warning  Failed     59s                 kubelet            Error: ImagePullBackOff
+		  Normal   Pulling    48s (x2 over 6m2s)  kubelet            Pulling image "docker-development-virtual.artifactory.comtech-idn.com/comtechtel/location/dlp/dlphcmgr/healthcheck-init:2.0.0"
+
+
+k8s secret ->
+	kubectl get secrets | grep collection
+
+k8s configMap ->
+	kubectl get configmap | grep -E *-cm	
+
+k8s ingress -> 
+	kubectl get ingress
+	kubectl delete ingress collection-ingress		
+
+	[centos@C415-KMA-001 tarini]$ kubectl describe ingress collection-ingress
+		Name:             collection-ingress
+		Labels:           <none>
+		Namespace:        default
+		Address:
+		Default backend:  default-http-backend:80 (<error: endpoints "default-http-backend" not found>)
+		TLS:
+		  tls-certs5 terminates c415.tcs.core
+		Rules:
+		  Host           Path  Backends
+		  ----           ----  --------
+		  c415.tcs.core
+		                 /collection   collection-server:8843 (<error: endpoints "collection-server" not found>)
+		Annotations:     ingress.class: sgi
+		Events:          <none>
+
+
+collection query test:
+	
+	curl -u collection:collection http://172.16.250.111:8843/collection/v1/status
