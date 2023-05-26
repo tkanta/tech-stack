@@ -1,0 +1,180 @@
+
+
+===================== DSCP setting on outgoing request =================================
+
+Important:
+	iptables -t mangle -A OUTPUT -p tcp --sport 8843 -j DSCP --set-dscp 32 (working in Linux but not in Window docker)
+
+	
+using iptables:
+	Jira and Git Links:
+	https://jira.comtech-idn.com/browse/COLLECTIONSERVER-164
+	https://git.comtech-idn.com/location/positioning/zaxiscollectionserver/blob/e3246cdb0821eaf26f91b29a94f243f085a976e9/Dockerfile
+	https://git.comtech-idn.com/location/positioning/zaxiscollectionserver/commit/807792f36d16f8e60bac56e5350d95f9c8c0ae31
+	https://git.comtech-idn.com/location/positioning/zaxiscollectionserver/blob/444aac664654fa04a7a03f3b8682d939e6cb9168/Dockerfile
+	https://jira.comtech-idn.com/browse/POSAGENT-665
+	https://jira.comtech-idn.com/browse/POSAGENT-117
+	https://git.comtech-idn.com/location/positioning/positioningagent	
+	https://git.comtech-idn.com/location/positioning/positioningagent/commit/d5244c388a4a8b47411f99180713828fd7ccd571
+	https://git.comtech-idn.com/location/positioning/positioningagent/commit/edac001acff17305e7396d9e0038f7142da53f32
+	https://git.comtech-idn.com/location/positioning/positioningagent/commit/53d9ef66048563be76b0fa5f102a57065ef0f90d
+
+other links:
+	https://www.3cx.com/blog/voip-howto/qos-linux/
+	https://web.mit.edu/rhel-doc/4/RH-DOCS/rhel-rg-en-4/s1-iptables-options.html
+
+Example: iptables -t mangle -A OUTPUT -p tcp --sport 8843 -j DSCP --set-dscp 32
+	Explanation :  
+				-t mangle (use table mangle)
+				-A OUTPUT ( append rule to OUTPUT chain)
+				-p tcp --sport (use tcp protocol and source port 8843)
+				-j (Jumps to the specified target when a packet matches a particular rule)
+				--set-dscp 32 (set dscp value to 32)	
+
+
+Docker file:
+	RUN yum install -y iptables tcpdump
+	RUN yum install iptables-persistent
+	RUN iptables -t mangle -A OUTPUT -p tcp --sport 4321 -j DSCP --set-dscp 32
+	
+
+iptables:
+	https://www.digitalocean.com/community/tutorials/how-to-list-and-delete-iptables-firewall-rules
+	yum install -y iptables tcpdump
+	iptables -t mangle -A OUTPUT -p tcp --sport 8843 -j DSCP --set-dscp 32 (working in Linux but not in Window docker)
+	iptables -t mangle -A OUTPUT -p tcp -j DSCP --set-dscp 32
+	iptables -t mangle -A OUTPUT -p tcp --dport 8843 -j DSCP --set-dscp 32
+	iptables -t mangle -F (flush all rules for mangle table)
+
+	iptables -t mangle -L -v -n
+		Chain PREROUTING (policy ACCEPT 34 packets, 1700 bytes)
+		 pkts bytes target     prot opt in     out     source               destination
+
+		Chain INPUT (policy ACCEPT 34 packets, 1700 bytes)
+		 pkts bytes target     prot opt in     out     source               destination
+
+		Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+		 pkts bytes target     prot opt in     out     source               destination
+
+		Chain OUTPUT (policy ACCEPT 34 packets, 1700 bytes)
+		 pkts bytes target     prot opt in     out     source               destination
+		    0     0 DSCP       tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp spt:8843 DSCP set 0x20
+
+		Chain POSTROUTING (policy ACCEPT 34 packets, 1700 bytes)
+		 pkts bytes target     prot opt in     out     source               destination
+
+    ps -ef
+    	[root@c415-vas-collectionserver-94755fcd7-78cwr collectionServer]# ps -ef
+		UID        PID  PPID  C STIME TTY          TIME CMD
+		65535        1     0  0 06:33 ?        00:00:00 /pause
+		root       114     0  0 06:34 ?        00:00:00 /bin/sh startServerProd.sh
+		root       125     0  0 06:34 ?        00:00:28 node /opt/tcs/healthcheck/bin/tcs-healthcheck.js /etc/sdmgr.d
+		root       151   114  0 06:34 ?        00:00:00 npm
+		root       172   151  0 06:34 ?        00:00:10 node ./src/server.js
+		root       216     0  0 07:22 pts/0    00:00:00 bash
+		root       229   216  0 07:22 pts/0    00:00:00 ps -ef
+
+====================== DSCP Verification ===========================
+
+Test strategy:
+	- run two services (cl1/cls2) for primary and secondary
+	- update cls below changes 
+		* with http protocols and 8843 port for mate connection	
+		* service name update in congif.js (kafka-local, redis_local, cls2 etc.)
+		* logs in cls1 and cls2 routers
+
+	- run redis/kafka/cls1/cls2 in same network
+	- cls2 is mate for cls1
+	- run tcpdump in cls1
+	- send request to cls1
+
+	challenges:
+		- iptables setup requires Docker to run in privilege mode
+		- Check https module for DSCP QoS marking
+
+Docker:
+		build test image name: (By reusing the centos.DockerFile of CLS)
+			docker build --tag tarini/centos-iptables -f centos_copy.Dockerfile .
+
+		sample run:
+			docker run -it --privileged=true tarini/centos-iptables:latest bash	
+
+		Bridge network:
+			docker network create local-net
+			docker run -d --network local-net --name kafka-local -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-local:9092 spotify/kafka
+			docker run -d --network local-net --name redis_local -p 6379:6379 redis
+			docker run -it --network local-net --name cls1 --privileged=true -p 8841:8843 tarini/centos-iptables bash
+			docker run -it --network local-net --name cls2 --privileged=true -p 8842:8843 tarini/centos-iptables bash
+
+			Service to Service connection:
+				- replace service names (e.g: kafka-local/redis_local/cls2/cls1) in configuration insteadof 'localhost'
+				- use internal port for service -> service connection 
+						e.g: cls1 (8841:8843) -> cls2 (8842:8843)
+								from cls1 -> cls2 service connection, use 8843, not 8842
+
+			From outside to Service connection:
+				use localhost from outside (e.g: postman)	
+
+			copy tcpdump to local:
+				docker cp 4988ec42df8c:/opt/tcs/collectionServer/snmp_post.cap .	
+
+
+
+CLS download:
+	https://artifactory.comtech-idn.com/artifactory/maven-development-local/com/comtechtel/location/positioning/zaxiscollectionserver/0.0.5/collectionserver:0.0.5.tar.gz
+	curl -u dasharath.bhukya:Sep@2022a --output collectionserver:0.0.5.tar.gz https://artifactory.comtech-idn.com/artifactory/maven-development-local/com/comtechtel/location/positioning/zaxiscollectionserver/0.0.5/collectionserver:0.0.5.tar.gz
+
+Docker:
+	privilege mode:
+		- https://phoenixnap.com/kb/docker-privileged	
+
+k8s:
+	container privilege mode:
+		- https://www.cncf.io/blog/2020/10/16/hack-my-mis-configured-kubernetes-privileged-pods/
+		- https://kubernetes.io/docs/concepts/workloads/pods/#privileged-mode-for-pod-containers
+		- https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+		- https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#securitycontext-v1-core *****			
+	cp:
+		kubectl cp c415-rtc-collectionserver-565f75fb58-5q7ln:/opt/tcs/collectionServer/snmp_post.cap /home/centos/tarini/snmp_post.cap -c collectionserver
+
+	example:
+		securityContext:
+	          privileged: true
+	    ----------------------
+	    securityContext:
+          capabilities:
+            add: ["NET_ADMIN"]
+       
+
+nodejs:
+	body-parser:
+		https://www.npmjs.com/package/body-parser
+		urlencode will parse the body and creates key/val json object and store in req.body
+
+
+===================== tcpdump testing: ========================
+
+
+	https://opensource.com/article/18/10/introduction-tcpdump
+	https://medium.com/swlh/introduction-to-tcpdump-635653f56177
+	tcpdump -i eth0 port 8843 -w snmp_post.cap
+	tcpdump -i any -w snmp_post_3.cap
+
+
+	Rack testing:
+		run 2 pods for CLS with out starting script
+			command: ["/bin/sh", "startServerProd.sh"]
+			command: ["/bin/sh", "tail -f /dev/null"]
+		
+		provide 2nd pod IP in first as peer at (/home/tcsapp/collectionconfig/config.json)
+			pod1 - 172.16.250.107
+			pod2 - 172.16.113.165
+			http://172.16.113.165:8843
+
+		update https module to http and port to 8843 (src/util/httpUtils.js)
+		update startServerProd.sh for iptables rules (--dport 8843)
+		restart startServerProd.sh
+		run tcpdump 
+			tcpdump -i eth0 port 8843 -w snmp_post.cap
+			tcpdump -i any -w snmp_post_4.cap
+		make request to pod-1

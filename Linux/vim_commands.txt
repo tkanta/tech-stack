@@ -1,0 +1,19 @@
+----------------- vim commands ----------------
+
+- :s/foo/bar/gc (search pattern and replace one by one - https://linuxize.com/post/vim-find-replace/)
+replace with bar (y/n/a/q/l/^E/^Y)?
+Press y to replace the match or l to replace the match and quit. Press n to skip the match and q or Esc to quit substitution. The a option substitutes the match and all remaining occurrences of the match. To scroll the screen down, use CTRL+Y, and to scroll up, use CTRL+E
+
+- Set line number
+	* :set nu 
+
+- Copy all text in Vim editor
+	* https://linuxtect.com/how-to-select-all-in-vim-vi/
+	* https://stackoverflow.com/questions/3676855/vim-limited-line-memory ( p : paste only first 50 lines)
+	* :%y (copy all lines)
+
+
+global search reaplace:
+		https://kb.iu.edu/d/acoj
+		:%s/$releasever/7/g
+		:%s/download.docker.com/dockerproject.com/g

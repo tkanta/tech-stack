@@ -1,0 +1,62 @@
+
+
+================= tcpdump permission: =======================
+
+https://askubuntu.com/questions/530920/tcpdump-permissions-problem
+* RUN echo "collectionserver ALL=(ALL) NOPASSWD:/usr/sbin/tcpdump" >> /etc/sudoers	
+
+
+=================================== tcpdump ==============================================
+
+https://opensource.com/article/18/10/introduction-tcpdump ***
+https://medium.com/swlh/introduction-to-tcpdump-635653f56177
+https://www.psychz.net/client/question/en/how-to-read-tcpdump-output.html ****
+
+tcpdump :
+	tcpdump -i <etho> port <4132> -w <fileName> : dumps all packets , that can be verified in wireshark
+		* mv /usr/sbin/tcpdump /usr/bin ( to prevent permission error in docker )	
+
+tcpdump run in backgroud:
+		https://www.tunnelsup.com/tcpdump-specify-interface-host-and-port/
+		nohup tcpdump -i ens192 port 162 &> ./temp.txt &
+
+Sample:
+	sudo tcpdump -i eth0 port 8843 -w snmp_post.pcap (write)		
+	sudo tcpdump -r -A snmp_post.pcap	 (read in ascii)
+
+ tcpdump testing: 
+ ----------------
+
+	write:
+			tcpdump -i eth0 port 8843 -nn -A -w snmp_post.pcap
+			tcpdump -i any -w snmp_post_3.cap
+
+	read from file:
+			tcpdump -nn -r snmp_post.pcap		
+
+	directly display:
+		 sudo tcpdump -i eth0 -nn -A port 8843
+
+	options:
+		- disable name resolution by using the option -n and port resolution with -nn
+			* sudo tcpdump -i any -c5 -nn
+		- To limit the number of packets captured and stop tcpdump, use the -c (for count) option
+
+Rack testing:
+-------------
+		run 2 pods for CLS with out starting script
+			command: ["/bin/sh", "startServerProd.sh"]
+			command: ["/bin/sh", "tail -f /dev/null"]
+		
+		provide 2nd pod IP in first as peer at (/home/tcsapp/collectionconfig/config.json)
+			pod1 - 172.16.250.107
+			pod2 - 172.16.113.165
+			http://172.16.113.165:8843
+
+		update https module to http and port to 8843 (src/util/httpUtils.js)
+		update startServerProd.sh for iptables rules (--dport 8843)
+		restart startServerProd.sh
+		run tcpdump 
+			tcpdump -i eth0 port 8843 -w snmp_post.cap
+			tcpdump -i any -w snmp_post_4.cap
+		make request to pod-1

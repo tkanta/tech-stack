@@ -1,0 +1,75 @@
+
+====================== alpine user creation: ============================
+
+https://www.unix.com/man-page/linux/8/adduser/
+
+addgroup -g 1001 -S healthcheck && adduser -u 1002 -S healthcheck -G healthcheck && rm -rf /home/healthcheck
+
+-g GID  Group id
+-S  Create a system group
+
+=================== alpine: upgrade package ===============================================
+		
+
+	apk --no-cache:
+		https://stackoverflow.com/questions/49118579/alpine-dockerfile-advantages-of-no-cache-vs-rm-var-cache-apk
+		The --no-cache option allows to not cache the index locally, which is useful for keeping containers small.
+		Literally it equals apk update in the beginning and rm -rf /var/cache/apk/* in the end.
+
+   apk --update
+   	https://stackoverflow.com/questions/43681432/explanation-of-the-update-add-command-for-alpine-linux
+   	it is similar to the Debian apt-get update that you do before apt-get install my_package
+
+   	Update the Package list
+			Remote repositories change as packages are added and upgraded. To get the latest list of available packages, use the update command. The command downloads the APKINDEX.tar.gz from each repository and stores it in the local cache, typically /var/cache/apk/, /var/lib/apk/ or /etc/apk/cache/.
+
+		apk update
+			Tip: If using remote repositories, it is a good idea to do an update just before doing an add or upgrade command. That way you know you are using the latest software available.
+   
+   add group and user:
+   	https://stackoverflow.com/questions/49955097/how-do-i-add-a-user-when-im-using-alpine-as-a-base-image
+   	# Create a group and user
+		RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+		# Tell docker that all future commands should run as the appuser user
+		USER appuser
+
+		Usage: adduser [OPTIONS] USER [GROUP]
+
+		Create new user, or add USER to GROUP
+
+		        -h DIR          Home directory
+		        -g GECOS        GECOS field
+		        -s SHELL        Login shell
+		        -G GRP          Group
+		        -S              Create a system user
+		        -D              Don't assign a password
+		        -H              Don't create home directory
+		        -u UID          User id
+		        -k SKEL         Skeleton directory (/etc/skel)
+
+===================== check / upgrade alpine library version: ======================
+
+	https://stackoverflow.com/questions/57850633/alpine-apk-list-all-available-package-versions
+	https://globedrill.com/how-to-list-and-search-packages-on-alpine-linux-server/ ***
+	https://www.cyberciti.biz/faq/10-alpine-linux-apk-command-examples/ *****
+
+	* apk add htop (install a pkg)
+	* apk search -a -> To list all package version (instead of latest version) 
+	* apk search | grep apk-tools
+	* apk list -I (list all installed package on Alpine Linux Server)
+		apk list -I | grep apk-tools busybox
+	
+	Interactive install or upgrade
+		* apk -i add apk-tools
+		* apk -i upgrade	
+		* apk add apk-tools
+		* apk upgrade
+
+	Simulation with apk command
+		* apk -s command
+		* apk -s add apk-tools
+		* apk -s upgrade
+
+	update pkg list:
+		* apk update

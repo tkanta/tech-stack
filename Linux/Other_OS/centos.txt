@@ -1,0 +1,37 @@
+
+======================== centos: package info:==========================================================
+
+https://centos.pkgs.org
+https://centos.pkgs.org/7/centos-x86_64/	
+https://pkgs.org/download/libsoup
+The errata list is a list of errors and their corrections that were found after the product was released.
+
+
+======================== Centos library naming convention: ===============
+
+
+https://access.redhat.com/discussions/1434473
+
+rpm -qi kexec-tools-1.102pre-126.el5_7.7.x86_64.rpm
+
+Name        : kexec-tools
+Version     : 1.102pre
+Release     : 126.el5_7.7
+Architecture: x86_64
+
+The confusing thing is that the distribution tag (the 'el5_7' part) is sometimes stuck in the middle of the release string. Here for example, the major part of the release string is '126', the minor part of the release string is '7', and the distribution tag 'el5_7' is stuck in between the two.
+
+The distribution tag el5_7 means "Packaged for RHEL 5.7".
+
+
+===================== YUM ======================================
+
+cheet sheet:
+	https://access.redhat.com/sites/default/files/attachments/rh_yum_cheatsheet_1214_jcs_print-1.pdf
+
+check latest pkg availalility:
+ 	yum list available | grep java-1.8.0-openjdk
+
+check pkg installed:
+ 	yum list installed | grep java-1.8.0-openjdk
+ 		

@@ -1,0 +1,47 @@
+
+
+======================== user / group add =======================================
+
+https://stackoverflow.com/questions/23601844/how-to-create-user-in-linux-by-providing-uid-and-gid-options
+
+First, create the group if it doesn't exist:
+
+$ groupadd -g 4200 sysadmin2
+Next, create the user and add it to the group:
+
+$ useradd sysadmin2 -u 4201 -g 4200 -m -s /bin/bash
+$ useradd appadmin1 -u 4100 -g 4100 -m -s /bin/bash
+
+groupadd -g 1001 healthcheck
+useradd healthcheck -u 1002 -g 1001
+
+=========================== check pkg version ========================================
+
+https://www.cyberciti.biz/faq/debian-ubuntu-linux-apt-get-aptitude-show-package-version-command/
+
+apt list {package-name-here}
+apt list vim
+
+================ check file exist [[]] not supported in ubuntu:  ========================
+
+https://stackoverflow.com/questions/3401183/bash-syntax-error-not-found ***
+https://linuxize.com/post/bash-check-if-file-exists/
+test:  [[ -f "" ]] not supported in ubuntu
+
+sample:
+	if [ -f "$vmlcSiteUpdateableFile" ]; then
+  		echo "1"
+	else
+			echo "4"
+	fi	
+
+=============  '==' in if[] not supported in ubuntu ===================
+	
+	test : if [ "$TESTVAR" == "foo" ] not supported in ubuntu
+   	You can't use == for single bracket comparisons ([ ]). Use single = instead
+
+
+====== non-interactive mode: =============
+
+https://stackoverflow.com/questions/59692797/how-to-fill-user-input-for-interactive-command-for-run-command	
+	ENV DEBIAN_FRONTEND noninteractive   	

@@ -1,0 +1,22 @@
+
+============== Linux Cheet sheet ==================
+
+https://www.makeuseof.com/tag/linux-commands-reference-pdf/
+https://www.redhat.com/sysadmin/pipes-command-line-linux  (pipes)
+
+================ vi shortcut ================
+
+ctrl + Z : move the process to background
+fg : move the process to fore-ground
+
+
+================ VI visual mode: ========================
+
+https://opensource.com/article/19/2/getting-started-vim-visual-mode ****   	
+https://stackoverflow.com/questions/6971903/how-to-do-column-editing-in-vim
+
+Block Mode:
+	Stand on the beginning of the column
+	Press Ctrl+v, then mark across the column you want to edit.
+	Press Shift+i to insert text at the beginning of the column, Shift+a to append text, r to replace highlighted text, d to delete, c to change... etc.
+	Hit ESC when done.

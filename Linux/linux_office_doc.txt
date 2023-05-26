@@ -1,0 +1,781 @@
+
+
+==================== symlink ==============================
+
+create link:
+		https://www.freecodecamp.org/news/linux-ln-how-to-create-a-symbolic-link-in-linux-example-bash-command/
+
+absolute-path-of-a-symlink:
+	https://stackoverflow.com/questions/16017500/how-to-see-full-absolute-path-of-a-symlink
+	readlink -f /opt/tcs/cfgMgr/meta/cfg/cfgServer_logrotation
+
+check if symlink:(it will be blue in color and . at end)
+	https://stackoverflow.com/questions/4561153/check-for-symbolic-link
+	ls -ls /opt/tcs/cfgMgr/meta/cfg/ 
+		4 -rwxr-xr-x. 1 root root   90 Apr  9  2021 cfgClient_logrotation		
+
+=================== case condition flow ===================
+
+https://www.tutorialspoint.com/unix/case-esac-statement.htm	
+#!/bin/sh
+
+FRUIT="kiwi"
+
+case "$FRUIT" in
+   "apple") echo "Apple pie is quite tasty." 
+   ;;
+   "banana") echo "I like banana nut bread." 
+   ;;
+   "kiwi") echo "New Zealand is famous for kiwi." 
+   ;;
+esac
+
+================ stat fileName ============================
+
+stat filename
+https://www.geeksforgeeks.org/stat-command-in-linux-with-examples/
+
+=============== set command: ===============================
+
+	https://phoenixnap.com/kb/linux-set#:~:text=The%20set%20command%20is%20a,and%20Korn%20shell%20(%20ksh%20).
+	Set an option by using a minus sign (-) followed by the appropriate option.
+	Unset an option by using a plus sign (+) followed by the appropriate option.
+
+
+===================	if comparison operator: =================
+
+	https://tldp.org/LDP/abs/html/comparison-ops.html
+	https://tldp.org/LDP/Bash-Beginners-Guide/html/sect_07_01.html
+	if[ -r ]	readable
+	if[ -f ] normal file
+
+
+==================	mkisofs ===================================
+
+	https://linux.die.net/man/8/mkisofs
+	https://linuxhint.com/use-mkisofs-on-ubuntu/#:~:text=Mkisofs%20is%20a%20command%20in,actually%20burn%20on%20the%20medium.
+
+
+==================== Mount Path: ===============================
+
+https://posix.in-egypt.net/content/how-mount-iso-fstab
+
+
+so to mount an iso from the command line you would use the command
+	* mount -o loop /root/CentOS-6.2-x86_64-bin-DVD1.iso /var/www/html/repo/CentOS-6.2-x86_64/
+but if you wanted that to be mounted at boot time via your fstab. it is different
+you would have to edit your fstab and add in a line similar to :
+	* /root/CentOS-6.2-x86_64-bin-DVD1.iso /var/www/html/repo/CentOS-6.2-x86_64/ iso9660 loop,ro,auto 0 0
+and then issue the command
+	*	mount -a
+and finally verify with
+	*	mount
+
+mount / unmount
+		https://linuxize.com/post/how-to-mount-and-unmount-file-systems-in-linux/
+		** When providing just one parameter (either directory or device) to the mount command, it will read the content of the /etc/fstab configuration file to check whether the specified file system is listed or not.If the /etc/fstab contains information about the given file system, the mount command uses the value for the other parameter and the mount options specified in the fstab file.
+
+		The /etc/fstab file contains a list of entries in the following form:	
+			[File System] [Mount Point] [File System Type] [Options] [Dump] [Pass]
+
+
+===========================  ncat: ===============================================
+
+   	https://www.linuxtechi.com/nc-ncat-command-examples-linux-systems/
+   	port forewarding: (Now all the connections for port 80 will be forwarded to port 8080.)
+   		ncat -u -l  80 -c  'ncat -u -l 8080'
+
+   
+=========================== linux architecture: ==================================
+
+		 https://unix.stackexchange.com/questions/12453/how-to-determine-linux-kernel-architecture
+		 i386 and i686 are both 32-bit.
+		 x86_64 is 64-bit	 
+		 uname -a (show all)
+		 uname -m (show only architecture)	
+		 arch
+
+
+
+=============================== Shell scripting ==================================
+
+find and replace directory:
+		https://unix.stackexchange.com/questions/66467/find-directory-and-copy-another-directory-to-found-directory
+
+		find /search/tree/root -type d -name "foo.bundle" -exec cp -Rp /path/to/B {} \;
+ 		
+ 		find /usr/local/lib/node_modules/npm/node_modules -type d -name "ansi-regex" | xargs echo {} \;
+	 	find /usr/local/lib/node_modules/npm/node_modules -type d -name "ansi-regex" -exec cp -Rp node_modules/npm {} \;
+
+	 	list dir content:
+	 		find /usr/local/lib/node_modules/npm/node_modules -type d -name "ansi-regex" -exec ls -lrt -exec ls -lrt \;
+      
+  find and remove:
+    	https://www.cyberciti.biz/faq/how-to-find-and-delete-directory-recursively-on-linux-or-unix-like-system/ ***
+    		find /dir/to/search/ -type d -name "dirName" -exec rm -rf \;  
+    
+  find result in list:
+    	https://stackoverflow.com/questions/59583440/assign-result-of-find-command-to-a-list-variable-in-bash-script
+    		mylist=($(find . -type f -name "*.png"))
+
+  loop find:
+    		https://stackoverflow.com/questions/9612090/how-to-loop-through-file-names-returned-by-find
+    		https://www.cyberciti.biz/faq/bash-for-loop/
+    
+  length of array:
+    		https://stackoverflow.com/questions/1886374/how-to-find-the-length-of-an-array-in-shell
+    		${#parameter}
+    		The length in characters of the expanded value of parameter is substituted. If parameter is ‘’ or ‘@’, the value substituted is the number of positional parameters. If parameter is an array name subscripted by ‘’ or ‘@’, the value substituted is the number of elements in the array. If parameter is an indexed array name subscripted by a negative number, that number is interpreted as relative to one greater than the maximum index of parameter, so negative indices count back from the end of the array, and an index of -1 references the last element.
+    
+  comparison operator:
+    		https://www.serverlab.ca/scripting-programming/how-to-use-bash-if-else-with-examples/
+    		Operator	Description	Example
+			-gt	Greater than	[[ $var -gt 10 ]]
+			-ge	Greater than or equal to	[[ $var -ge 10 ]]
+			-lt	Less than	[[ $var -lt 10 ]]
+			-le	Less than or equal to	[[ $var -le 10 ]]
+			-eq	Equal to	[[ $var -eq 10 ]]
+			-ne	Not equal to	[[ $var -ne 10 ]]
+
+  var type:
+    		https://stackoverflow.com/questions/59583440/assign-result-of-find-command-to-a-list-variable-in-bash-script
+    		https://stackoverflow.com/questions/14525296/how-do-i-check-if-variable-is-an-array
+    		if [[ "$(declare -p variable_name)" =~ "declare -a" ]]; then
+			    echo array
+			else
+			    echo no array
+			fi
+    
+ stripe dir name:
+   	https://www.unix.com/shell-programming-and-scripting/155702-how-remove-filename-path.html
+   	# a="/apps/test/abc/file.txt"
+		# echo "${a%/*}/"
+		/apps/test/abc/ 
+
+copy dir to another in linux:
+		https://devconnected.com/how-to-copy-directory-on-linux/
+		cp -R <source_folder> <destination_folder>
+
+split string:
+		https://stackoverflow.com/questions/918886/how-do-i-split-a-string-on-a-delimiter-in-bash
+			IN="bla@some.com;john@home.com"
+			arrIN=(${IN//;/ })
+			echo ${arrIN[1]		
+
+			IN="ansi-regex:3.0.1"
+			arrIN=(${IN//:/ })
+			echo "${arrIN[1]}" "@" "${arrIN[2]}"
+
+String concat:
+		https://www.geeksforgeeks.org/shell-script-to-concatenate-two-strings/
+		#concatenate the strings by putting one after the other. Store the result in c
+			c="-"$a" "$b"!"		
+
+
+bash in sh script:
+		https://www.warp.dev/terminus/dockerfile-run-sh
+
+
+
+====================== change user: ==========================
+
+	https://devconnected.com/how-to-change-user-on-linux/
+	sample:
+		su john   (In order to change user inheriting from logged-in user environment, you have to run with su )
+		su - john (In order to change user by creating a new environment, you have to run su with a hyphen.)
+		su - 			(Change user to root account on Linux with a new environment )
+		su 				( Change user to root account on Linux )
+
+
+=============== enable command for specific user: in /etc/sudoers =================
+
+ 	we can give full command in /etc/sudoer file to enforce the execution of the same command no other variation
+ 	sample:
+ 		RUN echo "collectionserver ALL=(ALL) NOPASSWD:/sbin/iptables -t mangle -A OUTPUT -p tcp --dport 443 -j DSCP --set-dscp 32" >> /etc/sudoers
+
+
+=============	check OS Name : ===========================
+		
+		https://gist.github.com/gmolveau/d0e3efc219c5bcc6ecc13a1405ac6c73	
+
+		if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+		  local DISTRIB=$(awk -F= '/^NAME/{print $2}' /etc/os-release)
+		  if [[ ${DISTRIB} = "Ubuntu"* ]]; then
+		    if uname -a | grep -q '^Linux.*Microsoft'; then
+		      # ubuntu via WSL Windows Subsystem for Linux
+		    else
+		      # native ubuntu
+		    fi
+		  elif [[ ${DISTRIB} = "Debian"* ]]; then
+		    # debian
+		  fi
+		elif [[ "$OSTYPE" == "darwin"* ]]; then
+		  # macOS OSX
+		fi
+
+============= String compare =================
+
+https://stackoverflow.com/questions/18102454/why-am-i-getting-an-unexpected-operator-error-in-bash-string-equality-test
+https://stackoverflow.com/questions/2981878/checking-for-environment-variables
+
+
+  You can't use == for single bracket comparisons ([ ]). Use single = instead. Also you must quote the variables to prevent expansion.
+	Enclose the variable in double-quotes.
+		if [ "$TESTVAR" == "foo" ]
+	if you do that and the variable is empty, the test expands to:
+		if [ "" == "foo" ]
+	whereas if you don't quote it, it expands to:
+		if [  == "foo" ]
+	which is a syntax error.
+
+sample:
+	if [ "$ENABLE_CERT_VALIDATION" = "false" ]
+	
+
+=================== debian and ubuntu: ==============
+	 
+	 https://www.educba.com/centos-vs-debian/
+	 Fedora, CentOS, Oracle Linux are all different distribution from Red Hat Linux and are variant of RedHat Linux. Ubuntu, Kali, etc., are variant of Debian
+	 Ubuntu builds on the Debian architecture and infrastructure and collaborates widely with Debian developers, but there are important differences.
+
+
+================ process  ===============================
+
+	https://www.javatpoint.com/linux-ps#:~:text=The%20ps%20command%20is%20used,ID%2C%20command%20name%2C%20etc%20.
+		* ps -ef (all process list)
+
+
+============ users ===============================
+
+ 	https://linuxize.com/post/how-to-list-users-in-linux/
+	 	* getent passwd (list all users)
+	 	* id <user-name>	
+  
+  password in /etc/shadow
+
+================= user and group creation =======================
+
+ 	https://linuxize.com/post/how-to-add-user-to-group-in-linux/
+ 		* groupadd collectionserver && useradd -g collectionserver collectionserver
+
+
+============== user in sudoer list for iptables execution: =============
+
+ 	https://dbpilot.net/using-iptables-utility-as-a-non-root-user/
+ 		* cp /etc/sudoers /etc/sudoers.$(date +%d%b%y)
+ 		* ls -l /etc/sudoers*
+ 		* echo "maxpatrol ALL=(ALL) NOPASSWD:/sbin/iptables" >> /etc/sudoers
+ 		* egrep maxpatrol /etc/sudoers
+ 		* su - maxpatrol
+ 		* sudo /sbin/iptables -nvL
+
+
+
+
+=============== delete maching files in dir: =================
+
+	https://askubuntu.com/questions/43709/how-do-i-remove-all-files-that-match-a-pattern
+	
+	command:
+		find ./src -name '*.js.map' -delete
+
+
+============== Default arguments for scripts ===========================
+
+	https://koenwoortman.com/bash-default-value-for-positional-parameter/#:~:text=In%20a%20bash%20script%20that,of%20the%20parameter%20is%20maintained.
+	* We can replace single or multi arguments as shown below
+
+	sample:
+		serviceVMs="${@:-service1 service2}"
+		serviceVM1="${1:-service1}"
+		serviceVM2="${2:-service2}"
+		echo "serviceVMs --> $serviceVMs"
+		echo "serviceVM1 --> $serviceVM1"
+		echo "serviceVM2 --> $serviceVM2"
+
+
+============= Linux remote execution: =============
+
+	ssh -t service1 'mv /home/centos/package.json /home/centos/package.json-bk'
+	ssh -t $serviceVM 'mv /home/centos/src  /home/centos/src-bk'
+	sudo scp -r ./src  service1:/home/centos/src
+
+	scp -r ./src  service1:/tmp/src
+  scp ./package.json  service1:/tmp/package.json
+  ssh -t service1 'sudo systemctl stop collectionServer'
+  ssh -t service1 'sudo systemctl start collectionServer'
+
+run condition in remote:  
+  ssh -t service1 '[ -d "/usr/lib/collectionServer/src" ] && echo "run1"  && echo "run2" ' 
+
+
+============ Linux CLI command operator: ================
+
+	https://www.makeuseof.com/linux-command-line-chaining-operators/
+
+============== tr command: =================================
+
+				echo 0.0.3-SNAPSHOT | tr -d "\-\-SNAPSHOT" (delete '-'' or '-SNAPSHOT')
+				result: 0.0.3	
+
+------------------------- Alias: ----------------------------------
+
+		https://linuxhint.com/create-bash-alias-with-arguments-and-parameters/		
+		alias usegmlcpc='. $PV_ROOT/gmlc/gmlcpc/env/build.bashrc; gos'
+
+-------------------- tree ----------------------------------------
+
+tree 	(display tree structure the contents of a dir)
+
+
+-------------------- vimdiff -------------------------------------
+
+vimdiff app-voy-config.yml ../ansible/app-voy-config.yml		(diff between files)
+
+----------------- process name from pid ---------------------------
+
+https://www.baeldung.com/linux/process-name-from-pid
+
+Every process has a folder associated at /proc/<PID>, to get more information execute below commands
+
+ls /proc/<pid>/exe (exe file)
+ls /proc/<pid>/comm (command used)
+
+--------------------- bash output redirection -------------------------
+
+		https://stackoverflow.com/questions/60760211/running-tcpdump-in-the-background-linux	
+		Below is quick reference guide for output redirection in bash.
+
+			1>filename
+			 # Redirect stdout to file "filename."
+			1>>filename
+			  # Redirect and append stdout to file "filename."
+			2>filename
+			  # Redirect stderr to file "filename."
+			2>>filename
+			  # Redirect and append stderr to file "filename."
+			&>filename
+			  # Redirect both stdout and stderr to file "filename."
+			2>&1
+			  # Redirects stderr to stdout.
+			  # Error messages get sent to the same place as standard output.
+			  sample : perl test.pl > debug.log 2>&1
+
+
+----------------- copy -----------------------------------
+
+copy dir to dir:
+		https://www.freecodecamp.org/news/copy-a-directory-in-linux-how-to-cp-a-folder-in-the-command-line-in-linux-and-unix-macos/
+		How to copy a directory to another directory
+			* cp -r directory-1 directory-2
+				Here directory-1 containing the file a.txt is copied to a new directory called directory-2—which now also contains the file a.txt.
+		How to copy the entire directory vs the contents of the directory
+			* There is an interesting edge case when you copy a directory: if the destination directory already exists, you can choose whether to copy the contents of the directory or the entire directory by adding or removing a trailing / from your input.
+					
+cp -Rp: 
+		 	* sudo cp -Rp /usr/lib/ldr_consumer/config /usr/lib/ldr_consumer/config.bak.$(date +%y%m%d)
+		 	* https://www.cyberciti.biz/faq/copy-command/)	
+		 	-p = This option (-p) forces cp to preserve the following attributes of each source file in the copy as allowed by permissions:
+		 	-R = To copy a directory, including all its files and subdirectories, to another directory, enter (copy directories recursively)		
+
+cp /source/src /dest/src ( it will copy src inside dest/src if present )
+
+------------------- AWK:	 -----------------------------
+
+https://linuxize.com/post/awk-command/
+https://phoenixnap.com/kb/awk-command-in-linux
+Sample:
+	df | awk '/\/dev\/loop/ {print $1"\t"$2 + $3}' (pipe inti df command)
+
+-------------------------- inotify -------------------------
+
+https://stackoverflow.com/questions/7566569/how-to-continuously-monitor-the-directory-using-dnotify-inotify-command
+
+inotify:	
+	https://linux.die.net/man/7/inotify
+	https://linux.die.net/man/1/inotifywait
+
+container:
+	RUN yum -y install inotify-tools (required for inotifywait and other commands)
+
+---------------- mount ----------------------
+
+https://phoenixnap.com/kb/linux-mount-command
+
+
+
+
+============================= sed ======================================
+
+insert/replace line at matching location:
+
+		https://stackoverflow.com/questions/15559359/insert-line-after-match-using-sed
+
+		insert:
+
+			sed '/CLIENTSCRIPT="foo"/a CLIENTSCRIPT2="hello"' file
+			sed "/'node_shared_openssl': 'true'/a 'node_use_system_openssl': 'true'," /root/.cache/node-gyp/14.20.0/include/node/config.gypi
+
+		replace:
+
+			sed -i '/CLIENTSCRIPT="foo"/a CLIENTSCRIPT2="hello"' file
+			sed -i "s/'node_shared_openssl': 'false'/'node_shared_openssl': 'true'/g" /root/.cache/node-gyp/14.20.0/include/node/config.gypi
+
+
+sed: (insert, delete, substitution)
+		- substitution should be placed inside double quotes ""
+		- https://www.digitalocean.com/community/tutorial_series/using-sed *****
+		- https://www.digitalocean.com/community/tutorials/the-basics-of-using-the-sed-stream-editor-to-manipulate-text-in-linux ****
+				* sed -i.bak '1~2d' everyother.txt 
+    - https://www.linuxtopia.org/online_books/advanced_bash_scripting_guide/x17375.html
+  	
+sed with regex group:
+  		To suppress location information on the CLS:
+		> sed -i 's/"\(locationLatitude\|locationLongitude\)"/"\1-FILTERED"/g' cls_els_ldr.json
+		> sed -i 's/"\(lat\|lon\)"/"\1-FILTERED"/g' cls_nnav_ldr.json
+
+sed list of files:
+   	sed -i 's/docker.io/localhost:5000/g' $(find . -name values.yaml)
+
+
+----------------linux file types: -------------------------------
+
+https://linuxconfig.org/identifying-file-types-in-linux
+
+
+====================== append multiline text to file: ================
+
+https://unix.stackexchange.com/questions/77277/how-to-append-multiple-lines-to-a-file
+* echo -e '#Set OPENSSL_PATH \nOPENSSL_PATH="/usr/local/ssl/bin" \nexport OPENSSL_PATH \nPATH=$PATH:$OPENSSL_PATH \nexport PATH' > /etc/profile.d/openssl.sh
+
+----------------- create user -------------------------------------
+
+https://linuxize.com/post/how-to-list-users-in-linux/
+
+user creation:
+		sudo useradd testpp
+		sudo passwd testpp (test1@)
+
+----------------- mkdir with permission ----------------------------
+
+mkdir -m 1777 test ( create dir with permission )
+
+----------------- sticky bit permission -----------------------------
+
+- This permission does not affect individual files. However, at the directory level, it restricts file deletion. Only the owner (and root) of a file can remove the file within that directory
+		- https://www.thegeekstuff.com/2013/02/sticky-bit/
+		- https://www.redhat.com/sysadmin/suid-sgid-sticky-bit
+		
+		
+
+------------------ run background process ----------------------------
+
+- https://stackoverflow.com/questions/12102270/run-java-jar-file-on-a-server-as-background-process
+		* nohup java -jar /web/server.jar &
+
+---------------------------------- Grep ------------------------------------------
+
+https://www.digitalocean.com/community/tutorials/grep-command-in-linux-unix
+
+commands:
+	grep -A15 helm_pvc_list dlpSite.yml ( show 15 lines from matched text)
+	ssh kwo2 'ls -al /dlpArchive/localvols/' | grep kafka ( connect to remote and execute commands)
+  ls -lrt | egrep  "*:1.0.30.tar.gz" ( grep from matching file list )
+  grep -r GMLCAgent *  (search recursively in all file and folders for the text from current dir onwards)
+
+grep regex:
+	https://regexr.com/
+	https://www.tecmint.com/difference-between-grep-egrep-and-fgrep-in-linux/
+	https://bytefreaks.net/gnulinux/bash/grep-print-only-the-words-of-the-line-that-matched-the-regular-expression-one-per-line
+
+			- grep -e '{"timeStamp":.*}' 0611-rfsp-5devices-1.txt	
+					* grep treat meta char e.g {, *, .  as string, so we have to escape meta chars if we don't want to treat it as part of string
+			- egrep '{"time[S,s]tamp":.*}' 0611-rfsp-5devices-1.txt
+			- egrep -o '\{"time[S,s]tamp":.*\}' 0611-rfsp-5devices-1.txt > log.txt 
+					* -o : get all matching pattern only
+					* egrep will treat meta char e.g {, *, .  char as is, so we have to escape meta chars if we want to treat it as part of string
+
+grep exact match:
+   	https://stackoverflow.com/questions/19576292/display-exact-matches-only-with-grep
+   	for image in `cat {{ item }} | grep image | awk -F " " '{print $2}'`; do docker pull $image;done
+   	
+   	cat calico.yaml | grep -w image | awk -F " " '{print $2}'
+   	cat calicoctl.yaml | grep -w image | awk -F " " '{print $2}'
+
+Grep: (grep content)
+		-https://www.geeksforgeeks.org/grep-command-in-unixlinux/#:~:text=The%20grep%20filter%20searches%20a,regular%20expression%20and%20print%20out).
+		-https://www.geeksforgeeks.org/sed-command-in-linux-unix-with-examples/
+		-https://stackoverflow.com/questions/18527365/what-does-sed-i-option-do	
+		-https://askubuntu.com/questions/833128/what-does-xargs-grep-do
+
+
+grep cut:
+		grep "{{" PostraceRender.cfg.j2 | cut -d '{' -f1
+
+
+-------------------------------- combination (find/locate/sed) --------------------------------------
+
+* find /tcs/ansible/roles/cls-app -type f -print | xargs grep -l 6381 | xargs sed -i.orig_6381 's/6381/6382/g'
+				-type f -print : print all the files under the folder recursively
+				xargs grep -l 6381 : list all file that contain 6381 for each file
+				xargs sed -i.orig_6381 's/6381/6382/g' : create backup file for each file argument received, before editing in-place
+				xargs : receive as input from the output of previous command (here it will receive the file names with path)
+
+			- This command will find all files under cls-app and list the only file that contain 6381 and replace 6381 with 6382	
+	
+* find: (find file with matching pattern)
+		-https://www.geeksforgeeks.org/find-command-in-linux-with-examples/
+
+	
+  
+  locate fileName (find the file )
+  
+  apply dos2unix recursively:
+  	https://unix.stackexchange.com/questions/279813/how-to-apply-dos2unix-recursively-to-all-the-contents-of-a-folder
+  	find /path -type f -print0 | xargs -0 dos2unix --
+  	
+  	
+---------------------- find and delete ------------------------------------------
+
+find  $BKP_DIR/archive/ -name "bkp-dash*" -mtime +5 -exec rm {} \;
+	* https://stackoverflow.com/questions/28874922/what-does-mean
+	* find files older than 5 days and delete it
+	* i.e. for each file that find finds, it runs rm where {} is substituted with the file name.
+		the shell is needed to end the -exec, so you can e.g. have other flags to the find command after it. the \ is used to escape the ;, since a ; on the shell would otherwise be interpreted as a command separator (as in e.g. the oneline cd /etc ; ls -l). Single quoting the ; would also work, ';' instead of \; - at least in bash.
+
+
+-mtime:
+	* https://unix.stackexchange.com/questions/92346/why-does-find-mtime-1-only-return-files-older-than-2-days
+	The argument to -mtime is interpreted as the number of whole days in the age of the file. -mtime +n means strictly greater than, -mtime -n means strictly less than.
+	Note that with Bash, you can do the more intuitive:
+	$ find . -mmin +$((60*24))
+	$ find . -mmin -$((60*24))
+	to find files older and newer than 24 hours, respectively.
+	(It's also easier than typing in a fractional argument to -mtime for when you want resolution in hours or minutes.)
+
+
+----------------- Check CPU, Memory ----------------------------
+
+https://www.tomshardware.com/how-to/monitor-cpu-and-ram-in-linux
+lscpu 	(CPU)
+free -h (RAM)
+
+
+---------------------- Block Device trim -------------------------
+
+lsblk --discard: 
+	The  command prints all block devices (except RAM disks) in a tree-like format by default
+	This command shows discard blocks which are not in use by the filesystem for each bock based drive mounted, so that it can be cleared by 'fstrim' command
+
+	https://www.redhat.com/sysadmin/trim-discard-ssds 
+	https://manpages.ubuntu.com/manpages/focal/man8/lsblk.8.html
+	https://forum.endeavouros.com/t/help-needed-with-ssd-trim-cannot-understand-the-commands/11036
+	
+fstrim: 
+	It is used on a mounted filesystem to discard (or "trim") blocks which are not in use by the filesystem. This is useful for solid-state drives (SSDs) and thinly-provisioned storage. By default, fstrim will discard all unused blocks in the filesystem
+
+
+------------------------- commands -------------------------------
+
+free -h ( check memory and swap memory )
+grep -r linuxize.com /etc 
+	- how to search for the string linuxize.com in all files inside the /etc directory
+	- https://linuxize.com/post/how-to-use-grep-command-to-search-files-in-linux/
+
+
+
+------------------ check systemd service logs using journalctl --------------
+
+check systemd service logs:
+				https://www.baeldung.com/linux/journalctl-check-logs ****
+				https://stackoverflow.com/questions/63449750/how-to-see-the-systemd-service-logs-in-ubuntu ****
+			
+commands:
+				sudo journalctl -u [service_name]
+				sudo systemctl list-units --type=service
+
+------------- How to do case insensitive search in Vim: ---------
+
+* https://stackoverflow.com/questions/2287440/how-to-do-case-insensitive-search-in-vim
+* /copyright\C    " Case sensitive
+  /Copyright\c    " Case insensitive
+
+------------- Find a user's UID or GID in Unix ---------
+
+https://kb.iu.edu/d/adwf
+ id -u username (user id) 
+ id -g username (group id)
+ id -G username (all groups user belongs)
+ id username (all UID and GID associated with the user)
+
+------------------ PollKit ----------------------------
+
+Polkit is used by systemd, that manages and control the states of application services running on any servers. 
+
+Here is informative link.
+https://unix.stackexchange.com/questions/546556/controlling-systemd-system-service-as-user
+
+I am not aware of any deployment configurations for polkit ,  I believe that polkit is currently running on default configuration, and there seems to be no need to manage the polkit service. That must be the reason why there is no description in the O & M guide.
+
+
+-------------------- SCP -----------------------------
+
+SCP: During file copy to a remote machine dir, and dir not present, scp will copy the file as dir name to the remote machine
+	* scp ./rfsp-server-gridgen-sdmgr-init.tar.gz centos@10.80.22.189:/home/centos/Tarini/testSdmgr
+
+
+scp -i /d/Projects/Ispace/Collaboration/Ispace_Azure/platformVM_key.pem ./nodelocaldns.yaml azureuser@20.212.179.227:/home/azureuser/nodelocalcache
+
+
+------------------- netstat --------------------------
+
+https://www.cyberciti.biz/faq/unix-linux-check-if-port-is-in-use-command/
+	netstat -nat | grep LISTEN (display all listening ports)
+  
+  sudo netstat -anp | grep LISTEN | egrep "6382|6381" 	(display lines that match 6381|6382 )
+  	tcp        0      0 <ip_address>:26382      0.0.0.0:*               LISTEN      4540/redis-sentinel
+		tcp        0      0 <ip_address>:6382       0.0.0.0:*               LISTEN      3925/redis-server c 
+
+------------------- password update ----------------
+
+password update : https://www.linuxtechi.com/10-passwd-command-examples-in-linux/
+
+-------------- User creation and sudoer ------------
+
+https://www.digitalocean.com/community/tutorials/how-to-edit-the-sudoers-file
+https://phoenixnap.com/kb/how-to-create-add-sudo-user-centos
+
+sudo /tcs/bin/userAdd.pl testssh
+sudo /tcs/bin/passwd.pl testssh   (Monday@123)	
+cat /etc/passwd | cut -d: -f1  
+groups root  (sudo user)   
+sudo usermod -aG root testssh
+
+--------------- PAM account lock --------------
+
+Account lock / unlock:
+	https://www.linuxtechi.com/lock-user-account-incorrect-login-attempts-linux/	
+	https://www.tecmint.com/lock-user-accounts-after-failed-login-attempts-in-linux/
+
+ 	- sudo vim /etc/pam.d/password-auth
+ 	- sudo vim /etc/pam.d/system-auth
+ 	auth     required       pam_faillock.so preauth silent audit deny=3 unlock_time=300
+	auth     [default=die]  pam_faillock.so authfail audit deny=3 unlock_time=300
+	account  required       pam_faillock.so	
+
+	Nov  2 11:35:05 config sshd[18098]: PAM service(sshd) ignoring max retries; 6 > 3
+
+	tail -f /var/log/secure (check logs for )
+
+------------ RPM ----------------
+https://www.tecmint.com/20-practical-examples-of-rpm-commands-in-linux/
+rpm -q collectionServer (check the version installed)
+
+----------- systemctl ------------
+
+systemctl --type=service ( check if service is loaded in service list )
+
+
+------ nohup --------
+
+nohup node server.js &
+tail -f nohup.out
+
+
+
+------------ zip / unzip / tar -----------------------
+
+https://www.makeuseof.com/linux-zip-folder/
+	zip -r cls_slipstream_12082022.zip ./cls_slipstream
+
+
+https://www.tecmint.com/18-tar-command-examples-in-linux/
+	tar -czvf cls-slipstream-3-1.8.1.tar.gz cls-slipstream-3-1.8.1/
+	tar xzvf cls-slipstream-1-1.8.1.tar.gz
+
+https://www.cyberciti.biz/faq/unpack-tgz-linux-command-line/	
+	tar zxvf fileNameHere.tgz (untar *.tgz file)
+	tar tvf *.tar ( list the content of tar )
+
+tar vs tgz
+	https://stackoverflow.com/questions/16198087/tar-vs-tgz-what-is-the-difference
+    	tar zcvf filename.tgz {filenames}
+    	tar cvf filename.tar {filenames}
+    	tar jcvf filename.tar.bz2 {filenames}	 
+
+-------- Conditional statement -------------
+
+https://acloudguru.com/blog/engineering/conditions-in-bash-scripting-if-statements ****
+https://stackoverflow.com/questions/19670061/bash-if-false-returns-true-instead-of-false-why
+
+- if [ $test == "false" ] then fi  (compare $test to "false")
+- if $test then fi 				 (if $test is true, e.g. "true", 'true', true also considered as boolean)
+- if [ <condition> ] then fi		 (It is equivalent to if test <condition> )
+
+
+--------- Echo command ----------------------------
+
+https://www.lifewire.com/output-text-to-the-screen-linux-echo-command-3572040
+
+----------- Delete all except one file ---------------
+https://www.tecmint.com/delete-all-files-in-directory-except-one-few-file-extensions/
+rm -rf !("collectionServer.tar.gz")
+
+
+-------------- SSH Analysis -------------------
+
+ssh commands and options:
+		ssh -t <remote-machine> 'commands' : (Force pseudo-terminal allocation.This can be used to execute arbitrary screen-based programs on a remote machine)
+
+SSH Vs SSL:
+	- https://en.wikipedia.org/wiki/Man-in-the-middle_attack
+
+
+SSH Failed attempts:
+	- https://serverfault.com/questions/720181/why-arent-failed-attempts-using-ssh-keys-only-logged
+
+
+SSH Flow:
+		https://medium.com/@Magical_Mudit/understanding-ssh-workflow-66a0e8d4bf65
+		https://www.hostinger.in/tutorials/ssh-tutorial-how-does-ssh-work
+		https://cybersecurity.att.com/blogs/security-essentials/explain-how-ssh-works-to-me
+
+		Steps:
+			- ssh -P <port> {user}@{host}  : login to remote host
+			- private key .pem file should be converted to .ppk, for putty ssh connective to remote Linux machine
+				- https://stackoverflow.com/questions/3190667/convert-pem-to-ppk-file-format
+			- Private key contains public key as well. so when we convert private key, the first 6 lines are public and around next 14 lines are private.
+			- public key should be added to server authorozed_key file
+			- client will accept the server public key by accepting it manually. So first time login server public key will be added to clients known_hosts file
+			- client and server will generate a session key used as symmeric encryption
+			- server authentication of client will done using Asymetric private/public key and MD5 hashing
+			
+
+		Is SCP an SSH?
+			Secure Copy (SCP) is a protocol based on SSH (Secure Shell) that provides file transfers between hosts on a network. ... The protocol uses the Remote Copy Protocol (RCP) to transfer files and SSH to provide authentication and encryption.17-Oct-2018
+	
+----------- htop command -----------------------
+
+-https://www.softprayog.in/tutorials/htop-command-in-linux 
+-https://support.cloudways.com/en/articles/5120765-how-to-monitor-system-processes-using-htop-command
+-https://www.linuxtechi.com/htop-monitor-linux-system-processes/
+
+F6 -> Tree view
+F5 -> sort by (memory , cpu etc.)
+
+---------------- namespace/cgroup -------------
+
+-https://scoutapm.com/blog/restricting-process-cpu-usage-using-nice-cpulimit-and-cgroups
+-https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/resource_management_guide/ch01
+
+------------ Limit CPU usage for sevice ---------------------
+
+-https://www.tecmint.com/limit-cpu-usage-of-a-process-in-linux-with-cpulimit-tool/
+-http://manpages.ubuntu.com/manpages/xenial/man1/cpulimit.1.html
+
+
+
+	------------------------------- Shell Loops --------------------------------------------
+
+	for eachnode in "${workerlist[@]}"  
+	 		 	do - done

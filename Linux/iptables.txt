@@ -1,0 +1,111 @@
+
+=================================== iptables =============================================
+
+
+https://www.tecmint.com/linux-iptables-firewall-rules-examples-commands/#:~:text=Iptables%20is%20a%20Linux%20command,in%20or%20user%20defined%20rules.
+
+iptable options:
+	https://web.mit.edu/rhel-doc/4/RH-DOCS/rhel-rg-en-4/s1-iptables-options.html 
+
+- commands:
+		iptables -t mangle -A OUTPUT -p tcp --sport 4321 -j DSCP --set-dscp 32
+		iptables -t mangle -L -v
+		
+- iptables:
+		https://www.xsofthost.com/help/how-to-restart-iptables-firewall-on-linux-server/
+		iptables -S (list rules)
+		iptables -D (delete rule)
+		service iptables save	
+		nmap <ip> : to see what ports are open
+		telnet <ip> <port> : to check the connection
+		iptables -A INPUT -p tcp --dport 8001 -j ACCEPT
+
+- https://upcloud.com/community/tutorials/configure-iptables-centos/ 
+		- https://www.howtogeek.com/177621/the-beginners-guide-to-iptables-the-linux-firewall/ ****
+		
+		* iptables -A INPUT -i eth0 -p tcp -m state --dport 22 --state NEW -m recent --set
+		* iptables -A INPUT -i eth0 -p tcp -m state --dport 22 --state NEW -m recent --update --seconds 120 --hitcount 3 -j DROP
+
+	Lockout duration. If duration is set to 0, lock out a user account until an administrator explicitly unlocks the account.
+		- https://www.linuxtechi.com/lock-user-account-incorrect-login-attempts-linux/		
+
+iptables command:
+-------------------
+	iptables -F (To clear all the currently configured rules, you can issue the flush command.)
+	iptables -L (List the currently configured iptables rules)
+
+	options:
+		-m (match)
+		--update (it will update the "last seen" timestamp if it matches)
+		--hitcount 
+			This option must be used in conjunction with one of --rcheck or --update. When used, this will narrow the match to only happen when the address is in the list and packets had been received greater than or equal to the given value. This option may be used along with --seconds to create an even narrower match requiring a certain number of hits within a specific time frame.
+		-j, --jump 
+			This specifies the target of the rule; i.e., what to do if the packet matches it.The target can be a user-defined chain (other than the one this rule is in)	
+		--set
+			https://www.linuxjournal.com/content/advanced-firewall-configurations-ipset
+
+    Save iptables:
+    	https://serverfault.com/questions/626521/centos-7-save-iptables-settings
+    	https://www.cyberciti.biz/faq/how-to-save-iptables-firewall-rules-permanently-on-linux/ ***
+    	https://upcloud.com/community/tutorials/configure-iptables-centos/ ***
+
+    	sudo yum install iptables-services
+    	sudo systemctl start iptables
+		sudo systemctl enable iptables
+		sudo service iptables save
+
+    revert iptables:
+    	https://unix.stackexchange.com/questions/57470/undo-iptables-modification#:~:text=use%20iptables%20%2DD%20...%20to%20delete%20the%20entries.&text=Run%20the%20same%20commands%20with,flush%20everything%20with%20iptables%20%2DF%20.
+
+    	iptables -D INPUT -p tcp --dport 22 -m state --state NEW -m recent --set --name SSH
+		iptables -D INPUT -p tcp --dport 22 -m state --state NEW -j SSH_WHITELIST
+		iptables -D INPUT -p tcp --dport 22 -m state --state NEW -m recent --update --seconds 60 --hitcount 4 --rttl --name SSH -j ULOG --ulog-prefix SSH_brute_force
+		iptables -D INPUT -p tcp --dport 22 -m state --state NEW -m recent --update --seconds 60 --hitcount 4 --rttl --name SSH -j DROP		
+
+Linux DSCP Policy:
+-----------------
+	https://www.3cx.com/blog/voip-howto/qos-linux/ ****
+	https://web.mit.edu/rhel-doc/4/RH-DOCS/rhel-rg-en-4/s1-iptables-options.html **** (options)
+	https://www.linuxtopia.org/Linux_Firewall_iptables/x4172.html
+	
+	Option	--set-dscp
+	Example	iptables -t mangle -A FORWARD -p tcp --dport 80 -j DSCP --set-dscp 1
+			iptables -t mangle -A FORWARD -p tcp --dport 9090 -j DSCP --set-dscp 32
+	Explanation	This sets the DSCP value to the specified value. The values can be set either via class, see below, or with the --set-dscp, which takes either an integer value, or a hex value.
+
+	Option	--set-dscp-class
+	Example	iptables -t mangle -A FORWARD -p tcp --dport 80 -j DSCP --set-dscp-class EF
+			iptables -t mangle -A FORWARD -p tcp --dport 9090 -j DSCP --set-dscp-class CS4
+	Explanation	This sets the DSCP field according to a predefined DiffServ class. Some of the possible values are EF, BE and the CSxx and AFxx values available. You can find more information at Implementing Quality of Service Policies with DSCP site. Do note that the --set-dscp-class and --set-dscp commands are mutually exclusive, which means you can not use both of them in the same command!		
+
+
+	Example: iptables -t mangle -A OUTPUT -p tcp --sport 8843 -j DSCP --set-dscp 32
+		* The docker container should be running in priviledged mode for iptables command to run properly
+
+	Explanation :  
+				-t mangle (use table mangle)
+				-A OUTPUT ( append rule to OUTPUT chain)
+				-p tcp --sport (use tcp protocol and source port 8843)
+				-j (Jumps to the specified target when a packet matches a particular rule)
+				--set-dscp 32 (set dscp value to 32)
+
+	iptables -t mangle -L -v -n (Linux)
+		Chain PREROUTING (policy ACCEPT 34 packets, 1700 bytes)
+		 pkts bytes target     prot opt in     out     source               destination
+
+		Chain INPUT (policy ACCEPT 34 packets, 1700 bytes)
+		 pkts bytes target     prot opt in     out     source               destination
+
+		Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+		 pkts bytes target     prot opt in     out     source               destination
+
+		Chain OUTPUT (policy ACCEPT 34 packets, 1700 bytes)
+		 pkts bytes target     prot opt in     out     source               destination
+		    0     0 DSCP       tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp spt:8843 DSCP set 0x20
+
+		Chain POSTROUTING (policy ACCEPT 34 packets, 1700 bytes)
+		 pkts bytes target     prot opt in     out     source               destination
+
+
+   Window Errors:
+		iptables: No chain/target/match by that name. It runs properly in Linux
