@@ -1,5 +1,35 @@
 
 
+=================== search / replace: ==============================
+   	https://linuxhint.com/vim_search_replace/
+   		:s/<search_term>/<replace_term>/option
+   				S: stands for substitute
+					search_term: the word you want to search and replace
+					replace_term: the word with which you want to replace it with
+					Option: c (for confirmation), g (replace all occurrence in one line), i (for ignoring the case)
+   		:%s/<search_term>/<replace_term>/g
+   
+======================== set -e:		 =============================
+   	In Linux, the set -e command, also known as the "errexit" option, is a shell option that instructs the shell to exit immediately if any command in a script exits with a non-zero status code.By default, the set -e option is disabled. You can disable it by using the set +e command in your script.
+	
+===================== shopt -s nullglob ===================================
+
+		#!/bin/bash
+		shopt -s nullglob
+		# Iterate over all text files in the current directory
+		for file in *.txt; do
+		  echo "Processing file: $file"
+		  # Perform operations on the file
+		done
+
+		* In the example above, with nullglob enabled, if there are no .txt files in the current directory, the loop will not execute, preventing any potential errors related to iterating over non-existing files.The shopt command in Bash is used to set and unset various shell options. When used with the -s option, it enables a particular shell option. In the case of shopt -s nullglob, it enables the nullglob option.
+
+		The nullglob option is a behavior modification for pathname expansion (also known as globbing) in Bash. When nullglob is enabled, if a glob pattern (e.g., *.txt) does not match any files, it expands to an empty string rather than being treated as a literal string. This is particularly useful when you want to iterate over files or perform operations on files that match a specific pattern.
+
+		* nullglob. If set, Bash allows filename patterns which match no files to expand to a null string, rather than themselves
+		https://github.com/armbian/build/issues/4927
+
+
 ==================== symlink ==============================
 
 create link:

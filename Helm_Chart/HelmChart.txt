@@ -63,6 +63,16 @@ File structure:
 		                      # will generate valid Kubernetes manifest files.
 		  templates/NOTES.txt # OPTIONAL: A plain text file containing short usage notes
 
+
+================== check rendered template: ========================
+
+	Once the Helm chart is installed, the rendered manifest files are not typically accessible directly, as they are managed by Helm and applied to the cluster on your behalf. However, you can inspect the rendered templates by running helm template <release-name> <chart-directory>, which will output the rendered YAML files without actually deploying them.
+
+	helm list | grep <release-name>
+	helm template <release-name> <chart-directory>
+	helm template esmlclmf ./esmlclmf
+
+
 ===================== helm:	repo search / update:=============================
 
 	https://stackoverflow.com/questions/55973901/how-can-i-list-all-available-charts-under-a-helm-repo
