@@ -1,4 +1,25 @@
 
+======================== tzdata (timezone management)  =============================
+
+timezone management
+	https://developers.redhat.com/blog/2020/04/03/whats-new-with-tzdata-the-time-zone-database-for-red-hat-enterprise-linux
+	* It tzdata library expects tz environment variable to create timezone base datetime
+
+sample:
+		dash-con helm (master-entlpproject-3847):
+			common-lib
+				ashcon_deploy/blob/master-entlpproject-3847/helm/common-lib/templates/_envvars.tpl
+				{{- define "common.envvars.timezone_format" -}}
+				- name: TZ
+				  value: "{{ .Values.timezone_format }}"
+				{{- end }}
+			dashboard:
+				dashcon/dashcon_deploy/tree/master-entlpproject-3847/helm/dashboard	
+				dashboard.yaml
+				env:
+				{{ include "common.envvars.timezone_format" . | indent 12 }}
+
+
 
 =================== search / replace: ==============================
    	https://linuxhint.com/vim_search_replace/
