@@ -64,6 +64,20 @@ File structure:
 		  templates/NOTES.txt # OPTIONAL: A plain text file containing short usage notes
 
 
+====================== get information: ================
+
+			https://stackoverflow.com/questions/52511552/how-do-i-see-what-custom-values-were-used-in-a-helm-release
+
+			helm get all <release-name>
+			helm get values <release-name>
+			helm status <release-name>
+
+====================== restart helm release: ===============
+
+
+			helm upgrade --install RELEASE_NAME CHART_NAME --recreate-pods
+			helm upgrade --install ldap ./ldap-4.0.0-11-920.tgz --recreate-pods
+
 ================== check rendered template: ========================
 
 	Once the Helm chart is installed, the rendered manifest files are not typically accessible directly, as they are managed by Helm and applied to the cluster on your behalf. However, you can inspect the rendered templates by running helm template <release-name> <chart-directory>, which will output the rendered YAML files without actually deploying them.

@@ -3,7 +3,8 @@
 
 timezone management
 	https://developers.redhat.com/blog/2020/04/03/whats-new-with-tzdata-the-time-zone-database-for-red-hat-enterprise-linux
-	* It tzdata library expects tz environment variable to create timezone base datetime
+	https://www.claudiokuenzler.com/blog/1037/changing-timezone-debian-ubuntu-linux-tzdata
+	* It tzdata library expects TZ environment variable to create timezone base datetime
 
 sample:
 		dash-con helm (master-entlpproject-3847):
@@ -19,7 +20,11 @@ sample:
 				env:
 				{{ include "common.envvars.timezone_format" . | indent 12 }}
 
+			 values:
+			 		timezone_format: "UTC"
 
+	vmlc/dashboard/Dockerfile
+		 				apt-get install -y  tzdata			
 
 =================== search / replace: ==============================
    	https://linuxhint.com/vim_search_replace/
