@@ -1,0 +1,71 @@
+
+Links:
+  https://www.ibm.com/docs/en/ccfsa/4.0.0?topic=pc-creating-persistent-volume-claims-pvc-using-storage-classes 
+
+Overview kadalu storage pv:
+    - k8s local pv will be created first k8s StorageClass config
+    - once pvc created, it will search for appropriate local pv and bound with it.
+    - pvc will be  created and in bounded state
+    - pv will be created during pv creation
+
+---------------------------- k8s local pv/pvc creation  -------------------------------------
+
+{% for key, pv in helm_pvc_list.items() if pv.local is defined and pv.local == true %}
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: local-{{key | replace("_", "-")}}
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+{% set wrkr_valid = [] %}
+{%- for wrkr in ( groups['kubernetes_workers'] | sort ) -%}
+{%- if hostvars[wrkr].ansible_hostname is defined -%}
+{{ wrkr_valid.append( hostvars[wrkr].inventory_hostname ) }}
+{%- endif -%}
+{%- endfor -%}
+{% for volcount in range(1, ( localvol_perworker | default(1) ) + 1 ) %}{% for wrkr in wrkr_valid %}
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-{{key | replace("_", "-")}}{{loop.index}}-{{volcount}}
+spec:
+  capacity:
+    storage: {{pv.size | default('2')}}Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-{{key | replace("_", "-")}}
+  local:
+    path: {{localvol_path}}/{{key}}_{{volcount}}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - {{ hostvars[wrkr].ansible_hostname | lower }}
+{% endfor %}{% endfor %}{% endfor %}
+
+
+
+------------------------------- kubectl get pv ---------------------------------------------------------------------------------------
+
+NAME                CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM                     STORAGECLASS      AGE
+local-kafka1-1      5Gi        RWO            Retain           Bound       default/data-kafka-2      local-kafka        9d
+local-kafka1-2      5Gi        RWO            Retain           Available                             local-kafka        9d
+local-kafka1-3      5Gi        RWO            Retain           Bound       default/data-kafka-1      local-kafka        9d
+local-kafka2-1      5Gi        RWO            Retain           Bound       default/data-kafka-0      local-kafka        9d
+local-kafka2-2      5Gi        RWO            Retain           Available                             local-kafka        9d
+local-kafka2-3      5Gi        RWO            Retain           Available                             local-kafka        9d
+
+
+----------------------------- kubectl get pvc -----------------------------------------------------------
+
+NAME              STATUS   VOLUME             CAPACITY   ACCESS MODES   STORAGECLASS    AGE
+data-kafka-0      Bound    local-kafka2-1     5Gi        RWO            local-kafka     9d
+data-kafka-1      Bound    local-kafka1-3     5Gi        RWO            local-kafka     9d
+data-kafka-2      Bound    local-kafka1-1     5Gi        RWO            local-kafka     9d

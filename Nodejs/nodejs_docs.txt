@@ -1,0 +1,519 @@
+-------- TODO ---------
+next.js - React framework
+
+Getting Started
+------------------
+https://nodejs.org/en/docs/guides/
+https://nodejs.dev/learn ****
+https://nodejs.dev/learn/understanding-process-nexttick
+
+
+
+============================ timezone: ==============================================================
+
+new Date() : Always gives UTC date
+new Date().toString() : gives system data
+
+============================= npm ERR! code SELF_SIGNED_CERT_IN_CHAIN ==================================
+
+https://weekendprojects.dev/posts/fix-for-npm-error-code-self-signed-cert-in-chain/#:~:text=In%20this%20article%2C%20I%20went,upgrade%20to%20the%20latest%20version.
+
+- npm config set strict-ssl false	
+- npm start
+
+=============================== npmrc token: ===========================================================
+
+https://stackoverflow.com/questions/53099434/using-auth-tokens-in-npmrc
+Export your secret token into your session, e.g., export NPM_TOKEN="00000000-0000-0000-0000-000000000000"
+Inside your ~/.npmrc, add //registry.npmjs.org/:_authToken=${NPM_TOKEN}
+
+
+==================== transitive dependency upgrade: =======================================================
+
+* npm install get transitive dependency
+commands:
+	npm audit
+	npm update -g ansi-regex
+	npm list -g | grep ansi-regex
+	npm update -g got --depth=1
+	npm update -g ansi-regex --depth=4
+	npx npm-check --global --update-all (To automatically update all global packages to the 'Latest' version:)
+
+https://docs.npmjs.com/cli/v6/commands/npm-update
+https://www.npmjs.com/package/npm-check	
+https://dev.to/malykhinvi/fix-a-transitive-npm-dependency-vulnerability-4775  ****
+https://stackoverflow.com/questions/53238230/how-to-update-globally-installed-npm-packages ***
+https://itnext.io/fixing-security-vulnerabilities-in-npm-dependencies-in-less-than-3-mins-a53af735261d  
+https://josipmisko.com/posts/how-to-update-npm-packages-in-4-easy-steps
+https://stackoverflow.com/questions/56634474/npm-how-to-update-upgrade-transitive-dependencies
+https://docs.mend.io/en-US/bundle/wsk/page/how_to_resolve_vulnerable_npm_transitive_dependency.html
+
+Solution:
+	* Atleast Try to upgrade node version -> 14.17.0-alpine3.11
+	* Alleast Try to upgrade npm version -> npm@9.5.1
+
+
+===================== nodejs and npm version mapping ================================================
+
+- https://stackoverflow.com/questions/51238643/which-versions-of-npm-came-with-which-versions-of-node
+	https://nodejs.org/dist/
+	https://nodejs.org/dist/index.json
+
+
+================= search pkg version with npm list:	=====================================
+
+https://stackoverflow.com/questions/10972176/find-the-version-of-an-installed-npm-package
+
+npm list | grep redis
+
+
+=============== npm upgrade shipped with Node: ** ===============
+	
+https://blog.quigley.codes/specifying-npm-version-in-dockerfile/
+
+npm list | grep npm
+RUN npm install npm@6.14.6
+RUN rm -rf /usr/local/lib/node_modules/npm
+RUN mv node_modules/npm /usr/local/lib/node_modules/npm	
+
+
+============== https module length indicator ========
+
+https://nodejs.org/docs/latest-v14.x/api/http.html
+	'Content-Length': Buffer.byteLength(postData)
+
+
+------------------------- file Write must with absolute path: --------------------
+
+https://stackoverflow.com/questions/10685998/how-to-update-a-value-in-a-json-file-and-save-it-through-node-js
+https://stackoverflow.com/questions/38829118/nodejs-convert-relative-path-to-absolute
+https://nodejs.dev/en/learn/writing-files-with-nodejs/
+
+* We need to give absolute path of file to writeFile/writeFileSync
+		const {resolve} = require('path')
+		const fileName = "./config.json"
+		const filePath = resolve(fileName)
+		 let file = require(filePath)
+		 file.redis.redisRetention = 40
+		 const data = JSON.stringify(file, null, 2)
+		fs.writeFile(filePath, data, err => {
+		    if(err) {
+		        console.log(err)
+		        return 
+		    }
+		    console.log('writing to ' + fileName + " is successful");
+		})	
+
+* two API : writeFile (async version) / writeFileSync 
+
+------------------------------------- obfuscation: --------------------------------
+
+* https://ourcodeworld.com/articles/read/607/how-to-obfuscate-javascript-code-with-node-js
+
+
+------------------------------------- global config: ------------------------------
+
+https://codingsans.com/blog/node-config-best-practices	
+https://stackabuse.com/using-global-variables-in-node-js/	
+* delete cache and reload configuration
+	sample:
+		delete require.cache[require.resolve('../config/config')];
+    	config = require('../config/config')	
+* Need to declare global variable once in server.js and use it in other files without require
+* But if there is any static code, means outside of method than we need to require config mudule or load before any dependent module
+
+
+----------------------------- require: -----------------------------------------
+
+ * require a module makes it private scope for that file
+ https://www.freecodecamp.org/news/requiring-modules-in-node-js-everything-you-need-to-know-e7fbd119be8/
+		Resolving: To find the absolute path of the file.
+		Loading: To determine the type of the file content.
+		Wrapping: To give the file its private scope. This is what makes both the require and module objects local to every file we require.
+		Evaluating: This is what the VM eventually does with the loaded code.
+		Caching: So that when we require this file again, we don’t go over all the steps another time.	
+* require multiple files in a single require:
+	https://stackoverflow.com/questions/10554241/can-i-load-multiple-files-with-one-require-statement
+
+---------------------------- Remote IP when service behind proxy ------------------
+
+- remote ip when server is behind proxy:
+		* google search : node request object remote ip
+		* https://stackoverflow.com/questions/8107856/how-to-determine-a-users-ip-address-in-node
+			
+		* Steps:
+			- app.set('trust proxy', true) in your Express app.
+				app.set('trust proxy', true);
+			- Add proxy_set_header X-Forwarded-For $remote_addr in the Nginx configuration for your server block 	
+					location /  {
+		                proxy_pass    http://localhost:3001;
+		                proxy_http_version 1.1;
+		                proxy_set_header Upgrade $http_upgrade;
+		                proxy_set_header Connection 'upgrade';
+		                proxy_set_header Host $host;
+		                proxy_set_header X-Forwarded-For $remote_addr;  # this line
+		                proxy_cache_bypass $http_upgrade; 
+		        }
+			- You can now read off the client’s IP address from the req.header('x-forwarded-for') or req.connection.remoteAddress	
+				Sample: 
+					var ip = (req.headers['x-forwarded-for'] || '').split(',').pop().trim() || req.socket.remoteAddress
+
+
+---------------------------------- URL break up --------------------------------------
+
+https://www.kindacode.com/article/node-js-get-domain-hostname-and-protocol-from-a-url/
+https://nodejs.org/api/url.html#class-url
+
+----------------------------- node https client: -------------------------------------
+
+https://stackoverflow.com/questions/40537749/how-do-i-make-a-https-post-in-node-js-without-any-third-party-module ****
+https://stackoverflow.com/questions/52951091/how-to-use-async-await-with-https-post-request	*****	
+https://nodejs.dev/learn/making-http-requests-with-nodejs *****
+https://blog.logrocket.com/5-ways-to-make-http-requests-in-node-js/ (5 ways)
+
+node-fetch:
+		npm i node-fetch
+		https://www.npmjs.com/package/node-fetch/v/2.0.0
+
+
+node https module:
+   	* https://nodejs.org/docs/latest-v14.x/api/http.html#http_class_http_agent
+   	- response handler can be removed to prevent additional listener being created, if response is not required
+   	- https.Agent with maxSockets=100 and keepAlive: false 
+   		- https Agent responsible for managing connection persistence and maintains a queue for pending requests for a given host/port
+   		- maxsocket will keep memory under control by avoiding infinite number of socket from being created
+   		- keepAlive: false, will remove sockets once done	
+   	- https.Agent needs to be passed to https.request()
+	   Samples:
+	   		const https = require('https')
+			const keepAliveAgent = new https.Agent({ keepAlive: false, maxSockets: 100 });	
+			const config = {
+	      hostname: hostname,
+	      port: 443,
+	      path: pathname,
+	      method: 'POST', 
+	      headers: {
+	        'Content-Type': 'application/x-www-form-urlencoded',
+	        'sync': false
+	      }
+	    }
+
+	    config.agent = keepAliveAgent;
+	    const req = https.request(config);
+        req.on('error', (err) => {
+            const errMsg = err.message ? err.message : "mate server not reachable."
+            logger.collectionLog(req, "POST", "", "", "500", "Mate Sync Failure", errMsg)
+            kafka.eventLogger.logEvent('ZAXIS-MateServerNotReachable', 'Error:'+errMsg);
+        });
+        req.write(data)
+        req.end();
+
+------------------------------ Closure --------------------------------
+
+Closure:
+	* https://developer.mozilla.org/en-US/docs/Web/JavaScript/Closures
+
+
+--------------------------- Object Copy --------------------------
+
+Object copy:
+   	* https://www.samanthaming.com/tidbits/70-3-ways-to-clone-objects/
+
+
+----------------------------- Linting -----------------------------------
+
+linting:
+	* https://www.digitalocean.com/community/tutorials/linting-and-formatting-with-eslint-in-vs-code
+
+
+---------------------------- variable declaration: -----------------------
+
+- https://stackoverflow.com/questions/6888570/declaring-variables-without-var-keyword
+	* If you declare a variable, without using "var", the variable always becomes GLOBAL.
+
+hoist:
+	* When you assign a value to an undeclared variable, JavaScript automatically “hoists” it. This means it’s assigned to the global scope. Very bad!	
+
+var -Vs- let -Vs- const:
+   	* https://www.freecodecamp.org/news/var-let-and-const-whats-the-difference/
+
+------------------------------- check http version: --------------
+
+https://stackoverflow.com/questions/37829617/get-http-version-of-incoming-request
+app.use('/', (req, res, next) => {
+    console.log('Request HTTP Version: ', req.httpVersion) // 'HTTP 1.0'/'HTTP 1.1'/'HTTP 2.0'
+});
+
+------------------------------- base64 to binary: --------------------
+
+https://stackoverflow.com/questions/14573001/nodejs-how-to-decode-base64-encoded-string-back-to-binary
+https://nodejs.org/api/buffer.html#new-bufferstring-encoding
+	var b64string = /* whatever */;
+	var buf = Buffer.from(b64string, 'base64');
+
+----------------------- Async function dependency: -----------------------------------------
+
+- if any statement execution dependent on the async function, then we need to execute that statement in callback function of that async function or we need to await the async function to complete for the dependent statement to execute
+
+--------------------- class Loading: ----------------------------------------------------------
+
+https://riptutorial.com/node-js/example/10105/every-module-injected-only-once	
+
+- NodeJS executes the module only the first time you require it. Any further require functions will re-use the same Object, thus not executing the code in the module another time. Also Node caches the modules first time they are loaded using require. This reduces the number of file reads and helps to speed up the application.	
+
+--------------------- Json to key/value params conversion ---------------------------------------
+
+	https://howchoo.com/javascript/how-to-turn-an-object-into-query-string-parameters-in-javascript
+	var queryString = Object.keys(params).map(key => key + '=' + params[key]).join('&');
+
+----------------------- Nodejs ThreadPool: -----------------------------------------------
+
+- https://dev.to/johnjardincodes/managing-multiple-threads-in-node-js-3mpc
+- https://dev.to/johnjardincodes/increase-node-js-performance-with-libuv-thread-pool-5h10		
+- https://stackoverflow.com/questions/63369876/nodejs-what-is-maximum-thread-that-can-run-same-time-as-thread-pool-size-is-fo
+
+
+* There is a layer of Node that's already multithreaded and that is the libuv thread-pool. I/O tasks such as files and folder management, TCP/UDP transactions, compression and encryption are handed off to libuv, and if not asynchronous by nature, get handled in the libuv's thread-pool.
+
+
+--------------------------------- Express ----------------------------------------------------------------
+
+Express Query Params:
+	 https://masteringjs.io/tutorials/express/query-parameters	
+	 https://www.codegrepper.com/code-examples/javascript/frameworks/express/express+query+params+array
+
+-------------------------------- Middleware ---------------------------------------------------------------
+
+- json middleware : 
+	-app.use(express.json())
+	-When json header is false in request, json parser will not parse the body and request.body will be empty
+
+
+-------------------------------- Nodejs Fundamentals ------------------------------------------------------
+https://nodejs.dev/
+
+- Event loop, phase, nextTick, setImmediate, setTimeout 
+	https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/
+
+- Event emitter
+- Stream
+- Async / promise
+- npx : If you don't want to install npm, you can install npx as a standalone package
+- Backpressuring in Streams
+	https://nodejs.org/en/docs/guides/backpressuring-in-streams/
+
+- path module
+	
+
+- Buffer
+	Buffer is used to compute data that is in binary format. Crypto library needs to computation of cipher using Buffer.
+
+- crypto
+	- Instances of the Cipher class are used to encrypt data
+	- Once the cipher.final() method has been called, the Cipher object can no longer be used to encrypt data. Attempts to call cipher.final() more than once will result in an error being thrown.
+
+- global objects
+	- These objects are available in all modules
+    - __dirname, __filename, setTimeout etc
+    - __dirname, __filename are only available in scripts not in REPL
+    	-https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
+    
+- modules (CommonJS modules)
+	- https://nodejs.org/api/modules.html
+	- In the Node.js module system, each file is treated as a separate module.
+
+- REPL ( Read Evaluate Print Loop)
+	- execute node will start REPL
+
+- argv
+	-node index.js name=Tarini ( const args = process.argv.slice(2) )
+
+- console.log
+	- Print object -> console.log('Tarini us %o', User) 
+	- measures time spent -> console.time('doSomething()') / console.timeEnd('doSomething()') 
+    - color the output
+    - count element printed
+------------------------------------------------------------------------------------------------------------
+
+Nestjs
+--------
+nestjs - Nest (NestJS) is a framework for building efficient, scalable Node.js server-side applications (https://docs.nestjs.com/)
+
+NPM
+---------
+https://docs.npmjs.com/cli/v6/commands/npm-init
+
+
+Typescript
+-----------
+https://www.typescriptlang.org/docs/
+npm install -g typescript
+
+
+library
+----------
+http request:
+	- https://www.npmjs.com/package/postman-request#promises--asyncawait
+	
+	
+MultiCore Nodejs application
+---------------------------------
+https://nodejs.org/api/cluster.html
+https://medium.com/better-programming/is-node-js-really-single-threaded-7ea59bcc8d64	
+https://coderrocketfuel.com/article/run-a-node-js-http-express-js-server-on-multiple-cpu-cores
+
+
+------------- ES6 concept ---------------
+
+https://www.javascripttutorial.net/es6/
+http://es6-features.org/#Constants
+https://2ality.com/2015/02/es6-classes-final.html  
+https://medium.com/@madhanganesh/how-to-mock-es6-class-749da63268fc ****** ( class fundamentals )
+https://stackoverflow.com/questions/15406062/in-what-scope-are-module-variables-stored-in-node-js  ( node module variable scope ) 
+
+Object Destructuring:
+	https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring_assignment
+
+hoisting:
+	https://www.javascripttutorial.net/javascript-hoisting/
+
+ES6 collection:
+	https://www.javascripttutorial.net/es6/javascript-map/
+	map, set
+
+Arrays:
+    https://www.javascripttutorial.net/es6/array-of/
+
+Promise:
+	- Promise error / reject can only be caught by promise.catch for promise chain, not by outer try/catch
+	- Error thrown outside the Promise can only be caught by outer try/catch for promise chain, not by Promise.catch
+	- so both form of error handling should be present for promise chaining
+		- Promise.catch
+		- try/catch
+    - if we are using async/await for a Promise, both error can be handled in try/catch
+    - async/await is prefered over promise chain
+
+
+-------------------- mocking ------------------------------ 
+
+https://semaphoreci.com/community/tutorials/getting-started-with-node-js-and-mocha
+https://blog.logrocket.com/unit-testing-node-js-applications-using-mocha-chai-and-sinon/ **** ( mock Class )
+https://stackabuse.com/using-mocks-for-testing-in-javascript-with-sinon-js/ ***** ( mock 
+https://github.com/sinonjs/sinon/issues/831#issuecomment-197608895
+http://5.9.10.113/65699390/jest-mock-ioredis *** ( jest ioredis mock)
+
+
+-------------- ECMAScript support in nodejs --------------
+
+https://www.ecma-international.org/publications-and-standards/standards/ecma-262/ ****
+https://bytearcher.com/articles/how-to-check-if-node-implements-es6-language-feature/
+https://nodejs.org/en/docs/es6/
+https://en.wikipedia.org/wiki/ECMAScript#7th_Edition_%E2%80%93_ECMAScript_2016
+
+
+--------------- JavaScript Factory Functions vs Constructor Functions vs Classes -----------
+
+https://medium.com/javascript-scene/javascript-factory-functions-vs-constructor-functions-vs-classes-2f22ceddf33e
+
+
+--------------- regular vs Arrow function ----------------
+
+https://dmitripavlutin.com/differences-between-arrow-and-regular-functions/
+
+
+----------------- Node Profiler ------------------------
+https://nodejs.org/en/docs/guides/simple-profiling/
+
+node --prof ./src/server.js
+node --prof-process isolate-000002BC5D0581E0-15416-v8.log > processed_02.txt
+
+
+------------- __dirname / __filename -------------------
+https://www.geeksforgeeks.org/difference-between-__dirname-and-in-node-js/#:~:text=The%20__dirname%20in%20a,gives%20the%20current%20working%20directory.
+
+
+-------------------------- TLS certificate in Nodejs -----------------------------------
+
+Cert exchange flow :
+	-	CLS client make https call to remote CLS.
+	-	Remote CLS provide its public cert to client CLS
+	-	Client CLS will validate the  Remote cert using Nodejs bundle CA root certs as mentioned in mail chain below
+	-	Remote CLS cert doesn’t need to be stored in client CLS key store, if the root CA for the certificate is present in the Nodejs Default bundle, which by default contains major root CA’s provided by companies (around 400 root CA certificates)
+	-	If the root CA cert not present the bundle, which will be a rare case than we have extend the bundle with an additional certificate, that Nodejs provides with  NODE_EXTRA_CA_CERTS environment variable
+
+How to Resolve Certificate Errors in a Node.js App with SSL Calls : ----
+		- https://levelup.gitconnected.com/how-to-resolve-certificate-errors-in-nodejs-app-involving-ssl-calls-781ce48daded *****
+		- https://github.com/nodejs/node-v0.x-archive/blob/master/src/node_root_certs.h *****
+		- https://en.wikipedia.org/wiki/Man-in-the-middle_attack *****
+		- https://smallstep.com/hello-mtls/doc/combined/nodejs/axios ****
+
+CA bundle:----
+		- The default root certificates are static and compiled into the node binary.
+				- https://github.com/nodejs/node/blob/v4.2.0/src/node_root_certs.h
+				- https://github.com/nodejs/node/blob/v14.2.0/src/node_root_certs.h
+				- https://stackoverflow.com/questions/14619576/where-is-the-default-ca-certs-used-in-nodejs
+		- https://www.namecheap.com/support/knowledgebase/article.aspx/986/69/what-is-ca-bundle/	
+		- https://www.rapidsslonline.com/ssl/ca-bundle/ *****
+		- openssl s_client -showcerts -connect www.google.com.in:443 ( check CA chain for remote server) ****
+
+How to add custom certificate authority (CA) to nodejs using NODE_EXTRA_CA_CERTS Environment:	 ----	
+		- https://stackoverflow.com/questions/29283040/how-to-add-custom-certificate-authority-ca-to-nodejs
+		* export NODE_EXTRA_CA_CERTS=[your CA certificate file path]
+		* Note that the variable must point to single file, not directory with certificates. If several certificates in PEM format need to be added they can be concatenated into single file. It should be full CA Chain or at least the Root CA certificate
+
+
+How to add custom certificate to Nodejs using npm config: ----
+		- https://docs.npmjs.com/cli/v8/using-npm/config
+
+
+Axios Certificate:----
+		- https://stackoverflow.com/questions/51363855/how-to-configure-axios-to-use-ssl-certificate
+		- https://giacomo-mariani.medium.com/adding-trusted-ca-to-node-client-with-axios-2792024bca4
+		
+		- Code Sample: 
+
+			const httpsAgent = new https.Agent({ ca: MY_CA_BUNDLE });
+			const result = await axios.post(
+		    `https://${url}/login`,
+		    body,
+		    {
+		      httpsAgent: httpsAgent
+		    }
+		  )
+		- export NODE_TLS_REJECT_UNAUTHORIZED=0 in node app: This method is unsafe because it disables the server certificate verification, making the Node app open to MITM attack
+
+		Axios is an http(s) client and http clients usually participate in TLS anonymously. In other words, the server accepts their connection without identifying who is trying to connect. This is different then say, Mutual TLS where both the server and client verify each other before completing the handshake.
+
+		The internet is a scary place and we want to protect our clients from connecting to spoofed public endpoints. We do this by ensuring our clients identify the server before sending any private data.
+
+		// DO NOT DO THIS IF SHARING PRIVATE DATA WITH SERVICE
+		const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+		This is often posted (and more egregiously upvoted) as the answer on StackOverflow regarding https client connection failures in any language. And what's worse is that it usually works, unblocks the dev and they move on their merry way. However, while they certainly get in the door, whose door is it? Since they opted out of verifying the server's identity, their poor client has no way of knowing if the connection they just made to the company's intranet has bad actors listening on the line.
+
+		If the service has a public SSL cert, the https.Agent usually does not need to be configured further because your operating system provides a common set of publicly trusted CA certs. This is usually the same set of CA certs your browser is configured to use and is why a default axios client can hit https://google.com with little fuss.
+
+		If the service has a private SSL cert (self signed for testing purposes or one signed by your company's private CA to protect their internal secrets), the https agent must be configured to trust the private CA used to sign the server cert:
+
+		const httpsAgent = new https.Agent({ ca: MY_CA_BUNDLE });
+		where MY_CA_BUNDLE is an array of CA certs with both the server cert for the endpoint you want to hit and that cert's complete cert chain in .pem format. You must include all certs in the chain up to the trust root.
+
+
+---------------------- Both client / server certificate validation -------------------------
+
+	- https://engineering.circle.com/https-authorized-certs-with-node-js-315e548354a2 *****
+
+
+
+
+------------------- certificate bundle in nodejs -------------------------------------
+
+pros & cons:
+	- https://engineering.circle.com/https-authorized-certs-with-node-js-315e548354a2
+
+extend cert bundle:
+	- https://levelup.gitconnected.com/how-to-resolve-certificate-errors-in-nodejs-app-involving-ssl-calls-781ce48daded
+	
+----------------------- diff among crt / pem / pki --------------------------------------------
+
+ https://stackoverflow.com/questions/63195304/difference-between-pem-crt-key-files
+ https://www.ssl.com/guide/pem-der-crt-and-cer-x-509-encodings-and-conversions/

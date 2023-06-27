@@ -1,0 +1,34 @@
+
+============= nodejs optimization with redis ===============
+
+------ Different redis modules
+	- ioredis vs redis vs redis-js vs redis-node
+	- https://www.npmtrends.com/ioredis-vs-redis-vs-redis-js-vs-redis-node
+	
+------ Third party modules
+	- dotenv
+		Load variables from .env into processs.env
+		https://www.npmjs.com/package/dotenv
+	- Redis for caching, 
+	- Axios for HTTP requests, 
+	- @hapi/joi for schema/(req.body) validation, 
+	- global to require global variables, 
+	- Express for our basic Express server
+
+------ node modules
+	- util ( using asynchronous promisify) 
+		This is builtin module of nodejs, if not availble in browser environment then use the below
+		https://www.npmjs.com/package/util 
+		https://nodejs.org/dist/latest-v14.x/docs/api/util.html#util_util_promisify_original ****
+		https://www.geeksforgeeks.org/node-js-util-promisify-method/ ****
+		util.promisify() 
+		
+------- middleware
+	- https://github.com/senchalabs/connect#middleware ( node js middleware )
+	- https://stackabuse.com/handling-cors-with-node-js/
+	- cors : 
+		It will allow the method to be accessible by any domain, unless we specify the config for a specific domain.
+		If we don't use cors middleware, the server can only be accessible by request from same origin
+		
+------- express
+	- https://expressjs.com/en/guide/using-middleware.html			

@@ -1,0 +1,53 @@
+
+
+=========================================== k3d / k3s setup: ================================================
+
+
+Links:
+	https://kartaca.com/en/k3s-kubernetes-cluster-setup-with-k3d/ ****
+	https://hackernoon.com/how-to-deploy-apps-to-a-local-k3d-cluster ( local registry by k3d )
+	https://thoughtexpo.com/exploring-kadalu-storage-in-k3d-cluster-glusterfs/ (k3d cluster for kadalu)
+	https://www.techtarget.com/searchitoperations/tutorial/How-to-set-up-a-K3s-cluster 
+	https://www.linkedin.com/pulse/install-k3d-linux-kubernetes-installation-guide-prayag-sangode
+
+	
+Docker:
+	sudo yum -y install docker ; sudo systemctl enable --now docker; sudo systemctl status docker
+	sudo docker version
+
+	Manage Docker as a non-root user:
+		https://docs.docker.com/engine/install/linux-postinstall/
+		restart the VM after postintall
+	Configure Docker to start on boot with systemd
+		sudo systemctl enable docker.service
+		sudo systemctl enable containerd.service
+
+
+Install kubectl	
+	curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+	ls -lrt
+	chmod +x kubectl
+	mv kubectl /usr/local/bin
+	sudo mv kubectl /usr/local/bin
+	kubectl version
+
+Install k3d latest release:
+	wget -q -O - https://raw.githubusercontent.com/rancher/k3d/main/install.sh | bash
+	Preparing to install k3d into /usr/local/bin
+	k3d installed into /usr/local/bin/k3d
+
+
+		
+k3d commands:
+	$ k3d <command> --help
+	$ k3d --version
+	$ k3d cluster list
+	$ k3d cluster create test -a 4 		--> creat cluster with 4 agents
+	$ k3d cluster create k3d-cluster
+	$ k3d cluster delete -a 			--> Deletes all clusters 
+	$ k3d cluster delete [name] 		--> Deletes specified cluster 
+
+
+k8s commands:
+	kubectl get nodes --show-labels
+	kubectl label nodes worker-2.example.com role.comtech.com/vmlc=test	

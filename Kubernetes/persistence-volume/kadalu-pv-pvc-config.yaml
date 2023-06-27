@@ -1,0 +1,99 @@
+
+Links:
+  https://www.ibm.com/docs/en/ccfsa/4.0.0?topic=pc-creating-persistent-volume-claims-pvc-using-storage-classes 
+  https://thoughtexpo.com/exploring-kadalu-storage-in-k3d-cluster-glusterfs/ ** 
+
+
+Overview kadalu storage pv:
+    - KadaluStorage pv will be created using KadaluStorage config
+    - once pvc created, it will search for appropriate KadaluStorage pv and bound with it.
+    - pv/pvc will be  created at same time and in bounded state
+
+
+-------------------- pvc created from kadalu -----------------
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-volume{{ pvc.name }}
+spec:
+  storageClassName: kadalu.kadalu-storage-pool
+  accessModes:
+  - {{ pvc.mode | default("ReadWriteOnce") }}
+  resources:
+     requests:
+       storage: {{ pvc.size | default("2") }}Gi
+
+
+----------------   kadalu pv creation -----------------
+
+# File: sample-storage-config.yaml
+---
+apiVersion: kadalu-operator.storage/v1alpha1
+kind: KadaluStorage
+metadata:
+  # This will be used as name of PV Hosting Volume
+  name: kadalu-storage-pool
+spec:
+{%- set wrkr_valid = [] -%}
+{% for wrkr in ( groups['kubernetes_workers'] | sort ) -%}
+{%- if hostvars[wrkr].ansible_hostname is defined %}
+{{ wrkr_valid.append( hostvars[wrkr].inventory_hostname ) }}
+{% endif %}
+{% endfor -%}
+{% set storagecount = wrkr_valid | length | int %}
+{% if wrkr_valid | length | int > 2 %}
+{% set storagemod = storagecount % 3 %}{% set storagecount = ( wrkr_valid | length | int ) - storagemod %}
+  type: Replica3
+{% else %}
+  type: Replica1
+{% endif %}
+  volume_id: "{{ kadalu.volume_id if kadalu.volume_id is defined else range(1, 4096) | random(seed=siteid|lower+vnf_flavor|lower+'01'|lower) | to_uuid }}"
+  storage:
+{% for wrkr in ( wrkr_valid[0:storagecount] | sort ) %}
+    - node: {{ hostvars[wrkr].ansible_hostname | lower }}
+      path: /{{ kadalu_device | default("dlpArchive") }}
+{% endfor %}       
+
+
+------------------------- manifest ------------------------
+
+{{/*
+dlpadmin volume mounts
+*/}}
+{{- define "common.volumeMounts.dlpadmin" -}}
+- mountPath: /dlpadmin
+  name: pvc-dlpadmin
+{{- end }}
+
+
+{{/*
+pvc volume1 volume
+*/}}
+{{- define "common.volumes.pvcvol1" -}}
+- name: pvc-dlpadmin
+  persistentVolumeClaim:
+    claimName: pvc-volume1
+{{- end }}
+
+---------------------- kubectl get pv ------------------------------------------------------------------------------------------------------
+
+     
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS      CLAIM                                       STORAGECLASS                 REASON   AGE
+
+pvc-55efd98c-0947-4df1-9cba-b6c6bf2f11ce   1Gi        RWX            Delete           Bound       default/pvc-volume4                         kadalu.kadalu-storage-pool            8d
+pvc-6429c852-3f34-4a6e-a528-03c009f0a0f4   1Gi        RWX            Delete           Bound       default/pvc-volume1                         kadalu.kadalu-storage-pool            8d
+pvc-6f3e429e-f523-4e5d-9762-b3ee76d4af73   512Mi      RWO            Delete           Bound       default/pvc-volume2                         kadalu.kadalu-storage-pool            28h
+pvc-c4194933-4aa8-4686-858e-37e617f23e64   2Gi        RWO            Delete           Bound       default/redis-data-dlp-redis-fserv-master   kadalu.kadalu-storage-pool            8d
+pvc-cc8e1c80-ba98-4ddf-81f2-2ca9c7282605   512Mi      RWO            Delete           Bound       default/pvc-volume3                         kadalu.kadalu-storage-pool            28h
+pvc-f88a846d-55be-4ed5-afd6-ddc58387dd3e   512Mi      RWO            Delete           Bound       default/pvc-dlpadmin                        kadalu.kadalu-storage-pool            160
+
+---------------------- kubectl get pvc ---------------------------
+
+NAME            STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS                 AGE
+pvc-dlpadmin    Bound    pvc-f88a846d-55be-4ed5-afd6-ddc58387dd3e   512Mi      RWO            kadalu.kadalu-storage-pool   163m
+pvc-volume1     Bound    pvc-6429c852-3f34-4a6e-a528-03c009f0a0f4   1Gi        RWX            kadalu.kadalu-storage-pool   8d
+pvc-volume2     Bound    pvc-6f3e429e-f523-4e5d-9762-b3ee76d4af73   512Mi      RWO            kadalu.kadalu-storage-pool   28h
+pvc-volume3     Bound    pvc-cc8e1c80-ba98-4ddf-81f2-2ca9c7282605   512Mi      RWO            kadalu.kadalu-storage-pool   28h
+pvc-volume4     Bound    pvc-55efd98c-0947-4df1-9cba-b6c6bf2f11ce   1Gi        RWX            kadalu.kadalu-storage-pool   8d

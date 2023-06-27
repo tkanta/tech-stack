@@ -1,0 +1,447 @@
+
+Memory Leaks debugging in Nodejs
+--------------------------------
+	search : debugging node js memory leaks
+
+	https://www.toptal.com/nodejs/debugging-memory-leaks-node-js-applications *****
+	https://github.com/felixge/node-memory-leak-tutorial ***
+	https://sematext.com/blog/nodejs-memory-leaks/ ******
+	https://marmelab.com/blog/2018/04/03/how-to-track-and-fix-memory-leak-with-nodejs.html *******
+	
+	https://hacks.mozilla.org/2012/11/tracking-down-memory-leaks-in-node-js-a-node-js-holiday-season/
+	https://blog.risingstack.com/finding-a-memory-leak-in-node-js/	
+	https://medium.com/tech-tajawal/memory-leaks-in-nodejs-quick-overview-988c23b24dba
+	
+	https://stackoverflow.com/questions/20018588/how-to-monitor-the-memory-usage-of-node-js
+	https://start-up.house/en/blog/articles/how-to-track-memory-leaks-in-nodejs
+
+
+
+Memory Leaks Samples:
+	- https://auth0.com/blog/four-types-of-leaks-in-your-javascript-code-and-how-to-get-rid-of-them/
+	- https://blog.appsignal.com/2020/05/06/avoiding-memory-leaks-in-nodejs-best-practices-for-performance.html
+	- https://betterprogramming.pub/the-4-types-of-memory-leaks-in-node-js-and-how-to-avoid-them-with-the-help-of-clinic-js-part-1-3f0c0afda268
+
+Ways to copy Objects:
+	- https://www.samanthaming.com/tidbits/70-3-ways-to-clone-objects/
+
+
+v8 memory management: ****
+	- https://deepu.tech/memory-management-in-programming/
+	- https://dev.to/deepu105/visualizing-memory-management-in-v8-engine-javascript-nodejs-deno-webassembly-105p ******	(Visualize)
+
+
+Memory Leak Demystified:
+	- https://nodesource.com/blog/memory-leaks-demystified
+	* In the view you’ll see a list of leaked objects that are still hanging around, top level entries (a row per constructor), columns for distance of the object to the GC root, number of object instances, shallow size and retained size. You can select one to see what is being retained in its retaining tree. A good rule of thumb is to first ignore the items wrapped in parenthesis as those are built-in structures. The @ character is objects’ unique ID, allowing you to compare heap snapshots on per-object basis.
+
+
+Chrome Developer Tools Memory Profiler:
+	- https://commandlinefanatic.com/cgi-bin/showarticle.cgi?article=art038
+
+
+NSolid:
+	- https://nodesource.com/blog/getting-started-with-the-nsolid-console/
+
+
+Express memory Leak:
+	https://github.com/expressjs/express/issues/3552
+
+	 npm i express@4.16.2 (no memory leak)
+
+
+Nodejs Memory Limit update:
+	* The size of the new space can be controlled using the --min_semi_space_size(Initial) and --max_semi_space_size(Max) V8 flags.
+	* The size of old space can be controlled using the --initial_old_space_size(Initial) and --max_old_space_size(Max) V8 flags.
+
+	* node --max_old_space_size=200 index.js
+
+	- https://nodejs.org/api/cli.html#cli_node_options_options
+	- https://stackoverflow.com/questions/48387040/how-do-i-determine-the-correct-max-old-space-size-for-node-js#:~:text=By%20default%2C%20the%20memory%20limit,avoid%20a%20memory%20limit%20issue.
+	- https://dev.to/deepu105/visualizing-memory-management-in-v8-engine-javascript-nodejs-deno-webassembly-105p
+
+
+Express memory leak:
+	- https://stackoverflow.com/questions/40046067/find-memory-leak-on-node-js-express-js-application
+	- https://github.com/expressjs/express/issues/3552
+	- Express-session
+		* https://github.com/node-red/node-red/issues/1434
+	- Express has no memory leak issue
+		
+Nodejs Memory Leak:
+	- Current Node version : v14.19.3
+	- Memory leak issue is introduced after v14.4.0
+	- https://github.com/nodejs/node/issues/25946
+	- https://github.com/nodejs/node/issues/40014#issuecomment-1077518378 ****
+		*  it suggests the issue appeared in Node V14.5.0, hasn't gotten any worse/better since then apart from a bit of weirdness in In V16.14.X.
+
+
+V8 Memory Leak:
+	- https://bugs.chromium.org/p/v8/issues/detail?id=12198#c20
+		* The v8 issue has a few suggestions for node with some speculation. Even after my last comment about Jest they are still suggesting removing a guard in node and asking if it will work. Could some folk from the node team with stronger knowledge than me provide some clear feedback? The team currently believe this isn't a common issue or something that can easily be worked around. This isn't the case ... for the Jest issue we are stuck on node 16.10 with no idea of longer-term solution.
+
+
+
+
+============== Timers and Callbacks memory leak ==================================
+
+Timers and Callback memory leaks: ***
+	- https://www.tutorialspoint.com/how-can-forgotten-timers-or-callbacks-cause-memory-leaks-in-javascript
+
+
+========================== Debuggin steps ===========================	
+
+https://github.com/felixge/node-memory-leak-tutorial
+
+npm install -g @mapbox/node-pre-gyp (not working for v8-profiler)
+	- C:\Users\taranin\AppData\Roaming\npm
+
+1. npm install --no-optional v8-profiler
+2. npm install -g node-inspector
+
+
+========================= Memory Leaks debugging in Windows =======================
+
+https://marmelab.com/blog/2018/04/03/how-to-track-and-fix-memory-leak-with-nodejs.html ******
+https://start-up.house/en/blog/articles/how-to-track-memory-leaks-in-nodejs ****
+
+node --inspect ./src/server.js
+chrome://inspect (browser)
+
+
+Chrome Memory Tab:
+	https://www.bitdegree.org/learn/chrome-memory-tab#:~:text=The%20Memory%20panel%20of%20the,debugging%20of%20JavaScript%20memory%20leaks.
+
+
+=========================== Debugging memory leaks in Linux (Current) ================================
+
+https://sematext.com/blog/nodejs-memory-leaks/
+https://start-up.house/en/blog/articles/how-to-track-memory-leaks-in-nodejs
+https://www.npmjs.com/package/heapdump
+https://techcommunity.microsoft.com/t5/apps-on-azure-blog/investigate-node-js-memory-leak-issue-in-linux-app-service/ba-p/2719258
+
+
+steps:
+	run a node centos docker image
+	update node version to 14.20 using nvm
+	install npm heapdump in docker image
+	copy to local folder in gitbash
+	zip and copy to linux rack 
+	unzip and copy to node_modules folder of collection server POD
+
+docker run:
+	https://hub.docker.com/r/centos/nodejs-10-centos7
+	docker run -it centos/nodejs-10-centos7 bash (command line)
+	docker exec -it -u root 73468b23d51f bash
+	docker run -it --privileged=true centos/nodejs-10-centos7 bash
+	docker run -it centos:7.9.2009 bash
+
+nvm set node version in centos:
+	https://www.digitalocean.com/community/tutorials/nodejs-node-version-manager
+
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
+   export NVM_DIR="$HOME/.nvm"
+   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+   
+   nvm ls-remote
+   nvm install 14.20
+   nvm alias default 14.20
+   unset NPM_CONFIG_PREFIX
+   nvm use 14.20
+   node -v
+   
+
+install heapdump:
+	npm init
+	npm install heapdump
+
+docker copy:
+	https://stackoverflow.com/questions/22049212/docker-copying-files-from-docker-container-to-host
+	docker cp clever_archimedes:/opt/app-root/src/node_modules  heapdump/
+	docker cp ./collection-server.zip 39ef20cff9a3:/opt/app-root/src/Tarini
+
+kubectl copy:
+	- https://www.digitalocean.com/community/questions/how-to-copy-files-and-directories-from-and-to-a-running-kubernetes-pod
+
+	copy from linux folder to POD's default container:
+		* kubectl cp ./heapdump c415-vas-collectionserver-595887fd67-wqt9v:/opt/tcs/collectionServer/node_modules
+		* kubectl cp ./axios c415-tkn-collectionserver-595887fd67-d6pk2:/opt/tcs/collectionServer/node_modules
+		* kubectl cp ./express c415-tkn-collectionserver-595887fd67-d6pk2:/opt/tcs/collectionServer/node_modules
+
+	copy from container to linux folder:
+		* kubectl cp c415-vas-collectionserver-595887fd67-wqt9v:/opt/tcs/collectionServer/heapdump-3402769234.542202.heapsnapshot /home/centos/Tarini/cls/dmp_20_07-2022/heapdump-3402769234.542202.heapsnapshot -c collectionserver
+
+		- heapdump-3402482061.722677.heapsnapshot
+		- heapdump-3402603871.571360.heapsnapshot
+		- heapdump-3402691449.989089.heapsnapshot
+		- heapdump-3402769234.542202.heapsnapshot 
+    	* kubectl cp c415-tkn-collectionserver-595887fd67-6z7vd:/opt/tcs/collectionServer/node_modules/axios  /home/centos/Tarini/cls/node_modules/axios
+
+
+node app change:
+	make below entry in server.js
+		* var heapdump = require('heapdump')
+
+
+jmeter:
+	rm -rf output.txt matrics/*
+	./apache-jmeter-5.5/bin/jmeter.sh -n -t ./CollectionServer.jmx -l ./output.txt -e -o ./matrics
+
+
+create snapshot:
+	1. Find your Node.js application process ID
+		e.g: 2349
+
+	2. Take the snapshot using below command (from worker node)
+		kill -SIGUSR2 <node_pid>
+		kill -SIGUSR2 2349
+
+	3. snapshot will be created at the root directory	
+
+-----------
+
+dos2unix
+	find . -type f -print0 | xargs -0 dos2unix
+
+
+node error:
+	Error: The module '/opt/tcs/collectionServer/node_modules/heapdump/build/Release/addon.node'
+	was compiled against a different Node.js version using
+	NODE_MODULE_VERSION 64. This version of Node.js requires
+	NODE_MODULE_VERSION 83. Please try re-compiling or re-installing
+	the module (for instance, using `npm rebuild` or `npm install`).
+
+
+
+=========================== Build CLS image using node v12 =============================================
+
+* Run the docker image centos/nodejs-12-centos7
+	* Issue Resolution: Docker failed to get d bus connection operation not permitted for (sudo systemctl start docker)
+		- https://bobcares.com/blog/docker-failed-to-get-d-bus-connection-operation-not-permitted/		 
+		- https://www.onooks.com/failed-to-get-d-bus-connection-operation-not-permitted/ ***
+		- https://docs.docker.com/engine/reference/commandline/network_create/ (create docker network)
+
+	docker run -d -it  --privileged=true -e container=docker -v /sys/fs/cgroup:/sys/fs/cgroup fa99434f01a2 /usr/sbin/init
+
+	docker network create -d bridge dockernetwork
+	docker network ls
+	docker run -d -t  --name preprod --cap-add=NET_ADMIN -h preprod --privileged=true --network dockernetwork  fa99434f01a2 /usr/sbin/init
+
+	
+
+* login to docker image (centos/nodejs-12-centos7) as root user
+	 docker exec -it -u root 019ff83c11bd bash
+
+* Install sudo 
+	 yum install sudo -y
+
+
+- above not needed, we can directly build in windows
+---------------------------------------------------
+* Install Docker in centos image 
+	
+
+* copy collection-server zip file to centos/node image (from gitbash)
+	docker cp ./collection-server.zip 019ff83c11bd:/opt/app-root/src/Tarini
+
+* update centos.dockerfile 
+ 	* FROM centos/nodejs-12-centos7
+
+* docker build --tag collectionserver:1.0.30 -f centos.Dockerfile .  	
+	 
+
+* docker save collectionserver:1.0.30 | gzip > collectionserver-1.0.30.tar.gz
+
+* upload to worker rack and load the image
+	scp ./collectionserver-1.0.30.tar.gz 10.80.22.190:/home/centos/Tarini/cls_12.0
+	sudo docker rmi collectionserver:1.0.30
+	sudo docker load < collectionserver-1.0.30.tar.gz
+
+* stop/start cls deployment
+	kubectl delete -f collectionServer.yaml
+	kubectl apply -f collectionServer.yaml
+
+* login cls pod and dos2unix (startServerProd.sh) and start
+
+* Test Jmeter
+	- update pod ip in jmeter test file
+
+	
+* Test combition
+	node: 12(nodejs-12-centos7), express: 4.18.1, axios: 0.27.1 (still memory consumption happening)
+	node: 12(nodejs-12-centos7), express: 4.17.1, axios: 0.21.1 (still memory consumption happening)
+
+================== Chrome Devtools ====================================
+
+window + F12 (opens devtools)
+
+==================== Traffic Generation Tools =========================
+
+https://www.joedog.org/siege-home/
+
+
+
+============================= Memory Leak Error ===============================
+
+* node --max_old_space_size=1024 index.js
+
+<--- Last few GCs --->
+
+[430:0x5221820]   587644 ms: Scavenge (reduce) 1014.4 (1025.3) -> 1013.9 (1026.3) MB, 4.0 / 0.1 ms  (average mu = 0.223, current mu = 0.292) allocation failure
+[430:0x5221820]   587684 ms: Scavenge (reduce) 1014.4 (1028.3) -> 1014.1 (1028.3) MB, 16.0 / 0.1 ms  (average mu = 0.223, current mu = 0.292) allocation failure
+
+
+<--- JS stacktrace --->
+
+FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+ 1: 0xa3aaf0 node::Abort() [node]
+ 2: 0x970199 node::FatalError(char const*, char const*) [node]
+ 3: 0xbba42e v8::Utils::ReportOOMFailure(v8::internal::Isolate*, char const*, bool) [node]
+ 4: 0xbba7a7 v8::internal::V8::FatalProcessOutOfMemory(v8::internal::Isolate*, char const*, bool) [node]
+ 5: 0xd769c5  [node]
+ 6: 0xd7754f  [node]
+ 7: 0xd8538b v8::internal::Heap::CollectGarbage(v8::internal::AllocationSpace, v8::internal::GarbageCollectionReason, v8::GCCallbackFlags) [node]
+ 8: 0xd88f4c v8::internal::Heap::AllocateRawWithRetryOrFailSlowPath(int, v8::internal::AllocationType, v8::internal::AllocationOrigin, v8::internal::AllocationAlignment) [node]
+ 9: 0xd5762b v8::internal::Factory::NewFillerObject(int, bool, v8::internal::AllocationType, v8::internal::AllocationOrigin) [node]
+10: 0x109fbef v8::internal::Runtime_AllocateInYoungGeneration(int, unsigned long*, v8::internal::Isolate*) [node]
+11: 0x1448df9  [node]
+./startServerProd.sh: line 22:   412 Aborted                 (core dumped) npm run startProd
+
+
+
+
+=================== Testing ========================
+
+k8s:
+	kubectl top pod --containers=true | grep collection
+
+linux:
+	top -c
+	shift + M
+	e
+
+jmeter:
+	./apache-jmeter-5.5/bin/jmeter.sh -n -t ./CollectionServer.jmx -l ./output.txt -e -o ./matrics		
+
+
+=================== Resolution =======================
+
+Axios client is consuming high memory for HTTPS mate sync
+
+Will be using node https client
+
+
+==================== Nodejs Https client ========================
+
+https://blog.logrocket.com/5-ways-to-make-http-requests-in-node-js/	
+https://stackoverflow.com/questions/40537749/how-do-i-make-a-https-post-in-node-js-without-any-third-party-module ****
+https://stackoverflow.com/questions/52951091/how-to-use-async-await-with-https-post-request
+
+
+
+
+=================== node http/https modules ==================
+
+https://github.com/statsfm/spotify.js/pull/42
+
+response resume:
+	* if no 'response' handler is added, then the response will be entirely discarded. However, if a 'response' event handler is added, then the data from the response object must be consumed, either by calling response.read() whenever there is a 'readable' event, or by adding a 'data' handler, or by calling the .resume() method. Until the data is consumed, the 'end' event will not fire. Also, until the data is read it will consume memory that can eventually lead to a 'process out of memory' error.
+
+	https://nodejs.org/api/http.html
+
+
+
+========================= node openssl https config for memory leak: =========================
+
+https://github.com/nodejs/node-v0.x-archive/issues/2653
+https://stackoverflow.com/questions/6623683/node-js-process-out-of-memory-in-http-request-loop
+* https://github.com/http-party/node-http-proxy/issues/766
+* https://github.com/nodejs/node/issues/37068
+* https://serverfault.com/questions/338092/how-can-i-build-node-js-using-static-libssl-and-crypto-libraries
+
+
+commands:
+	node -pe process.versions (check which openssl, v8 etc. node is using )
+
+
+openssl setup:-----------
+	* https://cloudwafer.com/blog/installing-openssl-on-centos-7/
+	* OpenSSL is an open-source command line tool that is commonly used to generate private keys, create CSRs, install your SSL/TLS certificate, and identify certificate information.
+	- https://www.openssl.org/source/old/		
+	- https://www.openssl.org/source/old/1.1.1/
+   
+   
+   	* yum install sudo
+   	* sudo yum update
+   	* sudo yum group install 'Development Tools'
+   	* sudo yum install perl-core zlib-devel -y
+   	* cd /usr/local/src/
+   	* sudo wget --no-check-certificate https://www.openssl.org/source/openssl-1.1.1c.tar.gz
+   	* sudo tar -xf openssl-1.1.1c.tar.gz
+   	* cd openssl-1.1.1c
+   	* sudo ./config --prefix=/usr/local/ssl --openssldir=/usr/local/ssl shared zlib
+   	
+   	* then edit the config.gypi file and change the node_use_system_openssl to true, this will force node to link against the version of openssl we built
+   		- /root/.cache/node-gyp/14.20.0/include/node/config.gypi
+   		sed -i "s/'node_shared_openssl': 'false'/'node_shared_openssl': 'true'/g" /root/.cache/node-gyp/14.20.0/include/node/config.gypi
+
+   	*   sudo make
+		sudo make test
+		sudo make install
+	* cd /etc/ld.so.conf.d/
+	
+	* sudo nano openssl-1.1.1c.conf
+		RUN echo $ '/usr/local/ssl/lib' > openssl-1.1.1c.conf
+	
+	* sudo ldconfig -v
+	
+	* sudo nano /etc/profile.d/openssl.sh  (https://stackoverflow.com/questions/55906325/how-to-append-multi-lines-to-file-in-a-dockerfile)
+			
+		RUN 
+		echo -e '#Set OPENSSL_PATH \nOPENSSL_PATH="/usr/local/ssl/bin" \nexport OPENSSL_PATH \nPATH=$PATH:$OPENSSL_PATH \nexport PATH' > /etc/profile.d/openssl.sh
+
+      * sudo chmod +x /etc/profile.d/openssl.sh
+      * source /etc/profile.d/openssl.sh
+
+   * which openssl
+   		/usr/local/ssl/bin/openssl
+   		
+openssl node config:------------
+
+	* https://github.com/nodejs/node-v0.x-archive/issues/2653
+	* https://stackoverflow.com/questions/28881392/force-node-js-to-use-non-distro-copy-of-openssl
+		* ./configure --openssl-use-sys --shared-openssl-includes=INCLUDEPATH --shared-openssl-libpath=LIBPATH
+
+   	1 - download a new version of openssl (I upgraded from 0.9.8r to 1.0.0g)
+	2 - build openssl and put it somewhere, mine I installed in /usr/local/ssl
+		cd /usr/local/src
+
+	3 - configure node.js
+		
+		location : /usr/lib/node_modules/npm/configure
+
+		./configure --openssl-libpath=/usr/local/ssl/lib --openssl-includes=/usr/local/ssl/include
+		./configure --openssl-use-sys --shared-openssl-includes=/usr/local/ssl/include --shared-openssl-libpath=/usr/local/ssl/lib
+
+	4 - then edit the config.gypi file and change the node_use_system_openssl to true, this will force node to link against the version of openssl we built
+		* find / -name config.gypi	
+		* sudo vim /root/.node-gyp/8.9.4/include/node/config.gypi
+	5 - make && make install
+
+
+
+===================== nodejs Throttling outgoing request ========================
+
+- https://stackoverflow.com/questions/6623683/node-js-process-out-of-memory-in-http-request-loop
+
+
+
+
+================ Memory statistics ==========================
+
+18k req Testing with openssl / https module
+--------------------------------------------
+[centos@C415-KMA-01 cls]$ kubectl top pod --containers=true | grep collection
+c415-tkn-collectionserver-595887fd67-rwnfg           collectionserver                  5m           597Mi
+c415-tkn-collectionserver-595887fd67-rwnfg           sdmgr                             10m          20Mi

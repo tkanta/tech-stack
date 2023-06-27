@@ -1,0 +1,21 @@
+
+	
+================ comtech Kubernates deployment ===========
+
+	- pod is a smallest deployment unit in kubernates.
+	- pod is linux process and network namespace and shared volume
+	- All containers inside a pod uses the same process/network namespace and have access to shared volume
+	- pods are connected to K8s using kCNI (container network interface)
+	- one service inside a pod
+	- https://www.guru99.com/kubernetes-tutorial.html
+	- https://cloudacademy.com/blog/docker-vs-virtual-machines-differences-you-should-know/ ( Docker vs VM)	
+	
+	
+================ Kubernates Fundamentals =======================
+1. Kubernetes
+	- https://kubernetes.io/docs/concepts/
+	- Working with Kubernetes Objects	:	
+		- https://kubernetes.io/docs/concepts/overview/working-with-objects/kubernetes-objects/
+	- Kubernetes Object Management	
+		kubectl diff -f configs/
+		kubectl apply -f configs/

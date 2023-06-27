@@ -1,0 +1,49 @@
+
+Asynchronous Nodejs
+----------------------
+
+
+
+Realtime app with socket.io
+----------------------------
+- websocket protocol
+- https://socket.io/
+- socket.io connection established using io() function in .js file imported into html file
+- different ways of emitting server socket Event
+	- socket.emit ( only to the client who just connected)
+	- socket.broadcast.emit (To all, except the client who just connected )
+	- io.emit ( To everyone )
+- Sharing location
+	- ES6 statement
+	- browser supplied navigator
+	- https://google.com/maps?q=0,0 ( location in google )
+
+	
+File upload
+----------------
+
+
+REST and MongoDB
+-----------------
+1. mongod.exe -dbpath=
+		- waiting for connection on port 27017
+2. commands:
+		const db = client.db(databaseName)
+		db.version()
+		db.collection('name').insertOne/insertMany
+		
+3. MongoDB Node driver		
+	- https://docs.mongodb.com/drivers/node/
+	- http://mongodb.github.io/node-mongodb-native/3.5/api/( nodejs mongo driver documentation)
+	- https://www.npmjs.com/package/mongodb
+	
+4. mongo _id is guid (global unique identifier)
+		- distributed scaling across mongo server 
+		- Avoid collision of id
+		- https://docs.mongodb.com/manual/reference/method/ObjectId/ (object ID representation)
+		- In db the _id is representated as binary insteadof string, Object('sfsdfsdf') outcome is binary value, as binary value is smaller in length than String
+		- methods ( toHexString - string value, getTimestamp - epoch time, id-binary value)
+		- _id is 12 bytes long
+
+5. promises:
+	

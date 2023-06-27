@@ -64,19 +64,19 @@ File structure:
 		  templates/NOTES.txt # OPTIONAL: A plain text file containing short usage notes
 
 
-====================== get information: ================
+====================== get release information: ================
 
-			https://stackoverflow.com/questions/52511552/how-do-i-see-what-custom-values-were-used-in-a-helm-release
+		https://stackoverflow.com/questions/52511552/how-do-i-see-what-custom-values-were-used-in-a-helm-release
 
-			helm get all <release-name>
-			helm get values <release-name>
-			helm status <release-name>
+		helm get all <release-name>
+		helm get values <release-name>
+		helm status <release-name>
 
-====================== restart helm release: ===============
+====================== restart helm release without any changes: ===============
 
 
-			helm upgrade --install RELEASE_NAME CHART_NAME --recreate-pods
-			helm upgrade --install ldap ./ldap-4.0.0-11-920.tgz --recreate-pods
+		helm upgrade --install RELEASE_NAME CHART_NAME --recreate-pods
+		helm upgrade --install ldap ./ldap-4.0.0-11-920.tgz --recreate-pods
 
 ================== check rendered template: ========================
 

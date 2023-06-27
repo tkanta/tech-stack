@@ -1,0 +1,245 @@
+
+
+------------- Confluence --------------
+
+Design intent for configuration management is documented in the below:
+
+	https://confluence.comtech-idn.com/display/PENTPDEV/Run-time+Configuration+Management
+
+and the related pages/tickets as below: 
+
+	https://confluence.comtech-idn.com/display/PENTPDEV/ConfigMap+updates
+	https://jira.comtech-idn.com/browse/DLPBASE-2520
+
+Implement and/or manually workaround as appropriate to ensure that the configuration changes are absorbed into your components (at launch and at runtime).
+
+
+Important links:
+	posagent:
+		https://jira.comtech-idn.com/browse/POSAGENT-445
+		https://jira.comtech-idn.com/browse/ENTLPPROJECT-1187
+		https://jira.comtech-idn.com/browse/POSAGENT-597
+		https://jira.comtech-idn.com/browse/POSAGENT-579
+		https://jira.comtech-idn.com/browse/POSAGENT-578
+		https://jira.comtech-idn.com/browse/POSAGENT-596
+
+	Ravens:
+		https://jira.comtech-idn.com/browse/ENTLPPROJECT-1186	
+
+	Confluence:
+		https://confluence.comtech-idn.com/display/PENTPDEV/Run-time+Configuration+Management
+		https://confluence.comtech-idn.com/display/PENTPDEV/ConfigMap+updates
+		https://confluence.comtech-idn.com/display/PENTPDEV/Kubernetes+Application+Configuration+Updates
+
+
+------------------ Agent List ---------------------------
+
+O&M Guide:
+	-kubectl exec -it gmlccli-756899474f-rt4fn -- bash
+	-agentList
+
+
+------------------- PosAgent Impl ---------------------------
+
+William Wells: I think what we've done under POSAGENT-595 (and POSAGENT-597) satisfy the intent of this story: to support runtime updateable configuration changes by applications (in our case the PosAgent). Does this sound right?
+
+Once POSAGENT-595 is closed, the PosAgent pod will run an init container at pod initialization time, which will render initial config and other supporting files ahead of posagent container instantiation. Then, afterwards, the posagent container will be run alongside a 'config sidecar' container which will be started with a script that monitors the vmclSiteUpdateable.yml file (which contains all config items for which we support runtime updates without requiring a posagent application - or container - restart), via the inotifywait unix command.
+
+When a change to this file is observed, the same process used by the init container to render initial config and other supporting files will be applied via an ansible playbook, but additionally an ansible task that invokes the 'agentCfg -reload' command - with the posagent application as the target - will be run.
+
+This should ensure that changes to entries in the vmlcSiteUpdatable.yml file, where applicable to the PosAgent application, will result in the necessary invocation of updateable config item callbacks within the application at runtime, thereby altering the application's behavior during operation without resorting to an application (or container) restart.
+
+We've implemented this approach with an eye to consistency with the approach taken by the Ravens team - see https://confluence.comtech-idn.com/display/PENTPDEV/Kubernetes+Application+Configuration+Updates
+
+
+
+file change notification to posagent application:
+
+	ref: start-posagent.sh
+			# Usage:
+			#   start-posagent.sh <agentName>:<agentPort> <rtmName> <appHomeDir> <licDir>
+			# where:
+			#   <agentName>:<agentPort> is the information passed to the Agent base class e.g. posagent:3510.
+			#   <rtmName> is the RTM displayed name (when RTM is used).
+			#   <appHomeDir> is the path to the generated files e.g. /home/tcsapp.
+			#   <licDir> is the path that contains tcs.lic.
+
+    
+    ref: positioning-reference-system-base
+    	- CommandExecutionSteps class
+
+    ref: posagent-config-containers.sh
+    	- https://git.comtech-idn.com/location/positioning/positioningagent/blob/master/positioning-agent-init/src/main/resources/bin/posagent-config-containers.sh
+
+    	# Infinite loop to monitor changes to vmlcSiteUpdateable.yml
+		while :
+		do
+		    inotifywait -e modify $vmlcSiteUpdateableFile
+		    echo "$(date -u) update to $vmlcSiteUpdateableFile detected" | tee -a /tmp/posagent-config.log
+		    ansible-playbook -e @$redisDefaultsFile -e appHomeDir=$appHomeDir $siteConfig /opt/tcs/positioning-agent-init/ansible/posagent-config.yml -v 2>&1
+		done	
+
+	ref: posagent-config.yml
+		- https://git.comtech-idn.com/location/positioning/positioningagent/blob/master/positioning-agent-init/src/main/resources/ansible/posagent-config.yml
+		roles:
+		    - config-gen
+		    - config-update
+
+    ref: positioning-agent-svcinit (part of config-update)
+    	ansible -> tasks
+    		{{ appHomeDir }}/positioning-agent/env/runtime-posagent.sh agentCfg -reload :3510 | grep -v -e "won't change" -e "change failed"
+
+    	* (runtime-posagent.sh  -> /opt/tcs/corebaser-$VOYAGER_VERSION/env/runtime-core.sh ) is executing agentCfg -reload (opt/tcs/corebaser-17.2.0/bin/agentCfg) command and passing the event to the agent listening at 3510 
+
+    ref: script diff
+    	ansible-playbook -e @$redisDefaultsFile $siteConfig -e appHomeDir=$appHomeDir /opt/tcs/positioning-agent-init/ansible/posagent-config.yml -v 2>&1
+		ansible-playbook -e @$redisDefaultsFile $siteConfig -e appHomeDir=$appHomeDir -e sdMgrConfigPath=$sdMgrConfigPath /opt/tcs/positioning-agent-init/ansible/posagent-setup.yml -v 2>&1 | tee -a /tmp/posagent-init.log
+
+
+----------------------- hot reload Nodejs Server -----------------
+
+- https://dev.to/rajeshroyal/how-to-live-reload-node-js-server-along-with-hot-reloading-2im0
+- https://stackoverflow.com/questions/28974297/can-node-config-reload-configurations-without-restarting-node ***
+	* https://github.com/lorenwest/node-config/issues/34
+
+- https://www.codingdefined.com/2015/07/edit-server-files-without-restarting.html
+- https://codeburst.io/dont-use-nodemon-there-are-better-ways-fc016b50b45e
+
+Steps:
+	- make config global variable in server.js files
+		- global.config = require('../config/config')
+		- use config in all other file without require
+
+	- expose REST API to accept file modification change notification
+		delete require.cache[require.resolve('../config/config')];
+    	config = require('../config/config')
+    - not require to restart redis and kafka if any change in relevant properties
+    		
+---------------------------- K8s  ---------------------------------
+
+sideCar container:
+	https://medium.com/bb-tutorials-and-thoughts/kubernetes-learn-sidecar-container-pattern-6d8c21f873d
+
+
+commands:
+	kubectl cluster-info (master and dns)
+	kubectl get deploy -owide (deployment with info such as, no 0f running containers and images)
+	
+---------------------------- Linux ------------------------------------
+
+https://stackoverflow.com/questions/7566569/how-to-continuously-monitor-the-directory-using-dnotify-inotify-command
+
+inotify:	
+	https://linux.die.net/man/7/inotify
+	https://linux.die.net/man/1/inotifywait
+
+
+
+---------------------------- Ansible ----------------------------------
+
+Shell:
+	https://www.middlewareinventory.com/blog/ansible-shell-examples/
+
+
+---------------- communication between containers in a POD ----------------
+
+https://stackoverflow.com/questions/67061603/how-to-communicate-between-containers-in-same-pod-in-kubernetes
+
+	- Use localhost to communicate with other containers within the same pod. So, each container can access the other containers in the pod as different ports on localhost.
+
+		E.g. the addresses to the containers are
+
+		127.0.0.1:3000
+		127.0.0.1:80
+		127.0.0.1:6379
+
+	- Inter-Process Communications (IPC):
+		Containers in a Pod share the same IPC namespace, which means they can also communicate with each other using standard inter-process communications such as SystemV semaphores or POSIX shared memory. Containers use the strategy of the localhost hostname for communication within a Pod.
+
+	- Using Shared Volumes in a Kubernetes Pod:
+		In Kubernetes, you can use a shared Kubernetes Volume as a simple and efficient way to share data between containers in a Pod. For most cases, it is sufficient to use a directory on the host that is shared with all containers within a Pod.
+
+
+------------------------ Rack Testing ----------------------------------------
+
+- URLS 
+	curl -u dasharath.bhukya:Sep@2022a --output collectionserver:0.0.5.tar.gz https://artifactory.comtech-idn.com/artifactory/maven-development-local/com/comtechtel/location/positioning/zaxiscollectionserver/0.0.5/collectionserver:0.0.5.tar.gz
+	
+
+	curl -u dasharath.bhukya:Sep@2022a --output collectionserver-config-init:0.0.5.tar.gz https://artifactory.comtech-idn.com/artifactory/maven-development-local/com/comtechtel/location/positioning/zaxiscollectionserver/0.0.5/collectionserver-config-init:0.0.5.tar.gz
+
+
+Steps:
+	- run cls-config images as side car container with /dev/null as entrypoint
+	- run new cls image
+	- update configMap
+	- login to cls-config and run ansible and curl script
+	- check updated config in cls container
+		curl -u collection:collection http://172.16.113.165:8843/collection/v1/status
+		curl -X GET 'http://localhost:8843/collection/v1/configReload'
+
+================================ Tasks =======================================
+
+https://jira.comtech-idn.com/browse/COLLECTIONSERVER-463
+
+1. Create a side car container for updating realtime config, to run along with main CLS container (18 h)
+	- create config-update.sh entrypoint script for watching vmlcSite.yml (inotifywait watcher) file for modification
+		* run 'config-uptate.yml' playbook to replace config file with the changes in the shared location and send curl request to REST API in NODE app container
+
+	- Create Ansible task 'config-uptate' to send a curl request notification to CLS application, using ansible task about file change 
+		Sample curl:
+			curl --location(L) --request(X) GET 'http://localhost:8843/collection/v1/configReload'
+			curl -X GET 'http://localhost:8843/collection/v1/configReload'
+
+	- Create Ansible play-book config-update.yml along side config-init.yml
+			- run task config-init
+			- run task config-uptate
+	- Rollback mechanism if an ansible failure occurs
+		- we should be taking backup of config file
+		- In case of failure we need to replace with the original
+		
+
+2. Create Nodejs REST interface for file change notification (18 h)
+		- receive file change notification from ansible
+		- hot reload the config changes using global config variable
+
+
+3. Test in Rack (18 h)
+	- Deployment using CI/CD
+	- Test for all configurable parameters
+
+ 
+
+
+========================== Rack Testing ===============================
+
+K8s:
+	  get config maps:
+	     kubectl get configmap | grep -E *-cm
+
+	  delete config map:
+	     kubectl delete configmap vmlcsite-cm 
+	     kubectl delete configmap vmlcsiteupdateable-cm
+	  
+	  create config map:
+	     kubectl create configmap vmlcsite-cm --from-file /home/centos/vmss/vmlcSite.yml 
+	     kubectl create configmap vmlcsiteupdateable-cm --from-file /home/centos/vmss/vmlcSiteUpdateable.yml
+
+config update:
+	sh ./config-update.sh /mnt/init
+
+CLS:
+	curl -u collection:collection http://172.16.113.165:8843/collection/v1/status
+
+	console.log("------ config.mateServerUrls : ", clsUtil.getMateUrls())
+	console.log("------ config.hmac.bypassHmacValidation : ", config.hmac.bypassHmacValidation)
+	console.log("------ config.redis.redisRetention : ", config.redis.redisRetention)
+	console.log("------ config.useLeading14DigitsOfImeiForKey : ", config.useLeading14DigitsOfImeiForKey)
+	console.log("------ config.hmac.secret : ", config.hmac.secret)
+	
+
+
+======================== Git merging ==============================
+
+branch from pv-883
+	pv-883-COLLECTIONSERVER-463

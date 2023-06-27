@@ -1,0 +1,901 @@
+
+
+================================================ k8s commands  ================================================================
+
+cheetsheet:
+    - https://kubernetes.io/docs/reference/kubectl/cheatsheet/
+
+
+cluster:
+    kubectl cluster-info (master and dns info)
+
+deplyments:
+    - kubectl delete -f rfspServer.yaml
+    - kubectl apply -f rfspServer.yaml
+    - kubectl get deployments
+        NAME                              READY   UP-TO-DATE   AVAILABLE   AGE
+        c415-collectionserver             1/1     1            1           12d
+        postgresql-postgresql-ha-pgpool   1/1     1            1           75m
+        zc55smlc01lmf-rfsp-server         1/1     1            1           71m
+    - kubectl get deploy -owide (deployment with info such as, no 0f running containers and images)
+
+login to pods :
+    https://loft.sh/blog/kubectl-exec-everything-you-need-to-know/ ****
+    https://loft.sh/blog/kubectl-exec-everything-you-need-to-know/ ***
+    - Use kubectl exec [POD] -- [COMMAND] 
+    - kubectl exec -it zc415smlc01lmf-collectionserver-59d8c4dc7f-9hwd4 -- /bin/bash                  # login to default container 
+    - kubectl exec -it zc55smlc01lmf-rfsp-server-cb4859685-vlmr6 -c rfsp-server-db-init -- /bin/bash  # login to specific container
+    - kubectl exec --namespace=kube-system etcd-kind-control-plane -it -- bash  (exec into different namespace)
+
+    login to coredns pod:
+        kubectl exec -it coredns-64897985d-hr8nm sh -n kube-system (not working)
+        https://stackoverflow.com/questions/60666170/how-to-get-into-coredns-pod-kuberrnetes
+
+            In short, do this to find a node where a coredns pod is running:
+            kubectl -n kube-system get po -o wide | grep coredns
+            ssh to one of those nodes, then:
+                docker ps -a | grep coredns
+            Copy the Container ID to clipboard and run:
+                ID=<paste ID here>
+                docker run -it --net=container:$ID --pid=container:$ID --volumes-from=$ID alpine sh
+            You will now be inside the "sidecar" container and can poke around. I.e.
+
+pods:  
+    - kubectl delete pod --force kafka-2   # delete a pod forcefully
+    - kubectl describe pod/zc437smlc01lmf-collectionserver-85b85cb565-bqcqz -n default # display all containers
+    - kubectl get pods                               # display all pods 
+    - kubectl cp <file> <POD>:/path                   # copy file from VM to POD 
+    - kubectl get pods -o wide                       # full description of pods 
+    - watch kubectl get pods                         # display pods deployment in progress
+    - kubectl apply -f <yml-menifest-file-name>
+    - kubectl explain pods                                  # get the documentation for pod manifests
+    - kubectl delete pod <pod> --force --grace-period=0     # delete individual pod
+    - kubectl delete deployment.apps <pod-name>             # delete individual pod if deployment file not there
+    - kubectl delete pod acid-minimal-cluster-0 --grace-period=0 (working)
+
+services:
+
+    - kubectl get services  # displays service:port exposed by k8s
+    - kubectl describe svc <service-name>  # service description
+
+    - kubctl get svc 
+      * get all services
+      * sample output: 
+        postgres   NodePort    10.101.189.164   <none>        5432:31133/TCP               7m53s
+    
+    - kubectl delete svc postgres
+        * delete postgres NodePort Service created from postgresql-postgresql-ha-pgpool
+
+logs:
+    - kubectl logs <pod-name> -c <container-name>  
+        * stream pod container logs (stdout, multi-container case)
+        * we can also view init container logs if error
+    - kubctl logs run=<label-name-in-yml> -c <container-name>  
+        # check logs without pod name, instead using label
+    - kubetail <pod-name>
+        kubetail postgresql-postgresql-ha-pgpool-57f9568c67-pptx8
+        kubetail c437-vas-rfsp-server-684bcbf6b5-dkzj5 -c rfspserver-app
+
+
+secret: 
+    - https://kubernetes.io/docs/tasks/configmap-secret/managing-secret-using-kubectl/
+
+    commands:
+      - kubectl get secret collection-server -o go-template='{{range $k,$v := .data}}{{"### "}}{{$k}}{{"\n"}}{{$v|base64decode}}{{"\n\n"}}{{end}}'
+      - kubectl delete secret collection-server ( delete config secret )
+      - kubectl create secret generic collection-server --from-literal=default-user-password=collection (create secret)
+      - kubectl get secret postgresql-postgresql-ha-postgresql -o go-template='{{range $k,$v := .data}}{{"### "}}{{$k}}{{"\n"}}{{$v|base64decode}}{{"\n\n"}}{{end}}' 
+      - kubectl delete secret db-user-pass
+      - kubectl get secrets ( Get all secrets )
+
+    - we can view certificate/key saved in secret (e.g: tls-certs5) using below command:
+          kubectl get secret tls-certs5 -o go-template='{{range $k,$v := .data}}{{"### "}}{{$k}}{{"\n"}}{{$v|base64decode}}{{"\n\n"}}{{end}}'
+      
+    - We can create a secret (e.g: tls-certs5) out of certificate/key with below command:  
+          kubectl create secret tls tls-certs5 --cert <CERT_FILE> --key <KEY_FILE>
+
+    - Please use the below command to verify the CN name in the TLS secrets.
+      kubectl get secret tls-certs5 -o "jsonpath={.data['tls\.crt']}" | base64 -d | openssl x509 -subject -noout | cut -d "=" -f 3
+
+      samples:
+        [centos@C437-KMA-01 ~]$ kubectl get secret tls-certs5 -o "jsonpath={.data['tls\.crt']}" | base64 -d | openssl x509 -subject -noout | cut -d "=" -f 3
+        c437.tcs.core
+        [centos@C437-KMA-01 ~]$ kubectl get secret tls-certs4 -o "jsonpath={.data['tls\.crt']}" | base64 -d | openssl x509 -subject -noout | cut -d "=" -f 3
+        c437.supl.com
+        [centos@C437-KMA-01 ~]$ kubectl get secret tls-certs3 -o "jsonpath={.data['tls\.crt']}" | base64 -d | openssl x509 -subject -noout | cut -d "=" -f 3
+        c437.tcs.sbi
+        [centos@C437-KMA-01 ~]$ kubectl get secret tls-certs2 -o "jsonpath={.data['tls\.crt']}" | base64 -d | openssl x509 -subject -noout | cut -d "=" -f 3
+        c437.tcs.wsn
+        [centos@C437-KMA-01 ~]$ kubectl get secret tls-certs1 -o "jsonpath={.data['tls\.crt']}" | base64 -d | openssl x509 -subject -noout | cut -d "=" -f 3
+        c437.tcs.oam
+
+
+menifest:
+    - kubectl diff -f ./my-manifest.yaml # Compares the current state of the cluster against the state that the cluster would be in if the manifest was applied.
+
+
+certificate:
+    curl -k http://10.80.32.170/collection/v1/els ( ignore certificate )
+    
+
+Networking:
+    - Cluster IP ( accessed through ingress only )
+    - NodePort ( Access as Node with port from outside )
+    - Load Balancer ( It will create a external IP, that can be used in Load Balancer in AWS/Azure )  
+    - Accessible from left to right (Load Balancer IP -> NodePort -> Cluster IP -> POD IP )
+  
+    - Nodeport exposure to outsire
+      * kubectl expose deployment postgresql-postgresql-ha-pgpool --name postgres --type NodePort --protocol TCP --port 5432 
+          * expose postgres HA proxy cluster service as postgres NodePort service with port 31133
+          * Db client url 
+              - jdbc:postgresql://<Admin-VM-IP>:<NodePort-IP>/postgres
+              - jdbc:postgresql://10.80.22.186:31133/postgres
+
+          * DB client u/p: postgres/YWRtaW4=
+                           postgres/admin 
+      * app: <selector> ( app selector works with nodeport configuration in *.yml file, run selector doesn't work)
+
+
+delete :
+
+    kubectl delete pod c415-vas-dashboard-9d8bd9c6b-xrjfk --force ( delete pod forcefully)
+
+
+kubectl copy:
+    - https://www.digitalocean.com/community/questions/how-to-copy-files-and-directories-from-and-to-a-running-kubernetes-pod
+
+    - kubectl cp ./heapdump c415-vas-collectionserver-595887fd67-qtjv6:/opt/tcs/collectionServer/node_modules
+
+    copy from a specific container to local:
+        - kubectl cp c415-vas-collectionserver-595887fd67-qtjv6:/opt/tcs/collectionServer/heapdump-2895711677.53711.heapsnapshot /home/centos/Tarini/cls/dmpFile/heapdump-2895711677.53711.heapsnapshot -c collectionserver  
+        - kubectl cp c415-collectionserver-8485986f8d-tqdhl:/mnt/ldr/cls_els_ldr.json /home/centos/dasharath/helm/cls_els_ldr.json -c collectionserver
+
+
+
+namespace :
+
+    https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+
+    kubectl get namespace
+    kubectl run nginx --image=nginx --namespace=<insert-namespace-name-here>
+    kubectl get pods --namespace=<insert-namespace-name-here>
+    
+    delete all pods/deployments from namespace:
+      https://stackoverflow.com/questions/33509194/command-to-delete-all-pods-in-all-kubernetes-namespaces
+      https://kubernetes.io/docs/tasks/run-application/force-delete-stateful-set-pod/
+
+      kubectl delete --all pods --namespace=default --grace-period=0 --force
+      kubectl delete --all deployments --namespace=foo
+      kubectl delete pods <pod> --grace-period=0 --force ( delete individual pod)
+    
+    change namespace:
+        https://stackoverflow.com/questions/55373686/how-to-switch-namespace-in-kubernetes
+        kubectl config set-context --current --namespace=kube-system  
+        kubectl config set-context --current --namespace=testnamespace
+
+    get pods from namespace:
+        kubectl get pods --namespace=testnamespace
+        kubectl get pods -n kube-system    
+    
+    connect to pod in another namespace:
+        https://8gwifi.org/docs/kube-externalname.jsp
+        kubectl exec -it kube-proxy-vpn78 sh -n kube-system 
+
+Labels and selector :
+
+    kubectl get pods -l environment=production,tier=frontend
+    kubectl get pods -l 'environment in (production),tier in (frontend)'
+
+    node label:
+        * https://www.golinuxcloud.com/kubectl-label-node/
+        
+        kubectl get nodes --show-labels
+        kubectl label nodes worker-2.example.com color=blue
+            
+
+
+K8S Ingress:
+
+      https://kubernetes.io/docs/concepts/services-networking/ingress/
+
+      commands:
+        kubectl get ingress
+        kubectl describe ingress collection-ingress
+        kubectl get pods --all-namespaces -l app=ingress-nginx
+        kubectl exec -it -n <namespace-of-ingress-controller> ingress-nginx-controller-67956bf89d-fv58j -- cat /etc/nginx/nginx.conf
+          * kubectl exec -it -n sgi-ingress sgi-ingress-7769bbf4bc-fw8b8 -- cat /etc/nginx/nginx.conf
+        kubectl get ing --all-namespaces
+        kubectl describe ing collection-ingress -n default
+        kubectl get pods -n default
+        kubectl exec -it -n sgi-ingress sgi-ingress-7769bbf4bc-fw8b8 -- sh
+        kubectl logs -n sgi-ingress sgi-ingress-7769bbf4bc-fw8b8 (check logs)
+        kubectl get pod -n sgi-ingress sgi-ingress-7769bbf4bc-fw8b8 -owide
+
+        
+      find ingress controller:
+        - vim manifests/collection-ingress-wsn.yaml 
+        - check the ingress class (ingress.class: sgi)
+        - kubectl get namespace ( fing the sgi name space)
+        - find the ingress pod (sgi-ingress-7769bbf4bc-fw8b8) in the namespace
+        - check the logs
+          * kubectl logs -n sgi-ingress sgi-ingress-7769bbf4bc-fw8b8 (check logs)
+
+      Troubleshooting Methods
+        Note that the commands in the next sections make the following assumptions:
+
+        The Ingress Controller is deployed in the namespace nginx-ingress.
+        <nginx-ingress-pod> is the name of one of the Ingress Controller pods.
+
+      delete ingress:
+        https://stackoverflow.com/questions/70860152/how-to-delete-a-ingress-controller-on-kubernetes
+        - kubectl delete ingress ingress-nginx 
+
+
+configmap: 
+  
+      - https://matthewpalmer.net/kubernetes-app-developer/articles/ultimate-configmap-guide-kubernetes.html
+      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+
+      - config map can be created from dir / files / literal value
+          * When you are creating a ConfigMap based on a directory, kubectl identifies files whose basename is a valid key in the directory and packages each of those files into the new ConfigMap
+          * When you are creating a ConfigMap based on a file, the key in the <data-source> defaults to the basename of the file, and the value defaults to the file content.
+
+      - kubectl create configmap app-config --from-file vmss/ # configmap should be created after file change in the directory
+      
+      - kubectl get configmap -o jsonpath='{. binaryData}' <name>
+            * kubectl get configmap -o jsonpath='{. binaryData}' app-config
+            * kubectl get configmap -o jsonpath='{. binaryData}' vmlcsiteupdateable-cm
+            *  kubectl get configmap -o jsonpath='{. binaryData}' vmlcsiteupdateable-cm -o go-template='{{range $k,$v := .data}}{{"### "}}{{$k}}{{"\n"}}{{$v|base64decode}}{{"\n\n"}}{{end}}'
+      
+      - kubectl get configmap app-config -o yaml
+      - kubectl get configmap app-config              # (gives no of data and age)
+      - kubectl describe configmap app-config         # describe data content
+
+      get config maps:
+         kubectl get configmap | grep -E *-cm
+
+      delete config map:
+         kubectl delete configmap vmlcsite-cm   
+         kubectl delete configmap app-config 
+      
+      create config map:
+         kubectl create configmap vmlcsite-cm --from-file /home/centos/tarini/bk/vmlcSite.yml 
+     
+      describe configmap:
+        kubectl describe configmap vmlcsiteupdateable-cm
+
+      edit configmap:
+         * using CLI : kubectl edit configmap <my-configmap>
+         * Using manifest file: Open a text editor and create a YAML file with the updated ConfigMap configuration. make changes and save it as updated-configmap.yaml. Apply the updated configuration using the kubectl apply command:
+            kubectl apply -f updated-configmap.yaml
+
+
+wait:
+    kubectl wait --for=condition=ready --timeout=30s pod -l 'app.kubernetes.io/name=postgres-operator'
+
+check id of acontainer:
+            kubectl exec -it pod-as-user-guest -n test1 -c two -- id
+
+======== Commands section END =========
+
+
+
+========================  manage pvc: =========================
+
+https://www.ibm.com/docs/en/ccfsa/4.0.0?topic=pc-creating-persistent-volume-claims-pvc-using-storage-classes          
+
+volumes:
+        volumes can be any of these 
+            - configMap
+            - persistentVolumeClaim
+            - empty volume
+            - hostPath
+PVC:
+    1. ldap used 2 claimNames as shown below:-
+         claimName: pvc-volume2
+         claimName: pvc-volume3
+    2. Delete volumes
+    $ kubectl delete pvc pvc-volume2 pvc-volume3 --grace-period=0 --force
+    Note:- if even after delete command pvc shows in terminating state for a minute then run commnand:- kubectl patch pvc pvc-volume2 -p '{"metadata":{"finalizers":null}}' and similarly for other pvc-volume3
+     
+    3. Copy pvc_list.yaml to new file and remove volumes other than pvc-volume2, pvc-volume3.
+    $ cp pvc_list.yaml pvc_list_v2_v3.yaml
+     
+    4. Create ldap related volumes
+    $ kubectl apply -f pvc_list_v2_v3.yaml
+     
+    $ kubectl get pvc|grep pvc-volume        
+============================================== Best practices: =========================================
+
+debug init container:
+            * use command /dev/null to debug init container
+
+securityContext:
+    * it is only updating the ownership of group only not the user. 
+
+shell script:
+    - always use #!/bin/bash for bash script
+    - remove commented code
+
+
+======================== network attachment defination ===================================
+
+
+multus-cni:
+
+kubectl get net-attach-def --all-namespaces
+kubectl exec -it pod-case-06 -- ip -d address (verify pod network)
+kubectl get pods --all-namespaces | grep -i multus
+kubectl describe network-attachment-definitions macvlan-conf
+
+additional docs for network attachment :
+
+    - https://events19.linuxfoundation.org/wp-content/uploads/2018/07/Secondary-Network-Interfaces-for-Containers-its-Types-and-Use-cases_v1.pdf
+        -  NPWG provides multus-cni as reference plugin for
+            network-attachment-definition
+            ○ https://github.com/intel/multus-cni
+            ○ Multus-cni is meta
+
+    networkattachmentdefinition macvlan:
+        https://platform9.com/docs/kubernetes/how-to-luigi---macvlan
+
+
+
+==================== node affinity and spread constraint =================================
+
+Topology Spread Constraints
+    control how pod are spread across cluster among failure-domains
+    Can help to achieve high availability as well as efficient resource utilization
+    
+Node Affinity
+    allows to constrain which nodes a pod is eligible to be scheduled on, based on labels on the node
+
+
+
+================== debug init container: ======================-===========================
+
+    https://kubernetes.io/docs/tasks/debug/debug-application/debug-init-containers/
+    kubectl logs healthcheck-pod-6ccdb4bdfd-qpms5 -c init (check init logs)
+
+
+================== session affinity vs Sticky session in k8s cluster: =============================
+
+https://stackoverflow.com/questions/1040025/difference-between-session-affinity-and-sticky-session
+* As I've always heard the terms used in a load-balancing scenario, they are interchangeable. Both mean that once a session is started, the same server serves all requests for that session.
+- https://stackoverflow.com/questions/58955409/how-to-use-session-affinity-on-requests-to-kubernetes-service
+- https://gist.github.com/fjudith/e8acc791f015adf6fd47e5ad7be736cb
+- https://medium.com/@ngbit95/session-affinity-using-nginx-ingress-controller-kubernetes-e39065e01a67 ****
+    ** The Ingress Controller will have Session Affinity Implemented, once we configure session affinity for our ingress, it will respond to request with set-cookie header set by ingress-controller. The randomly generated cookie id will be map to served pod so that flow of all request will serve by same server.
+
+
+=============================== k8s service account: ==============================
+
+https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+https://loft.sh/blog/kubernetes-service-account-what-it-is-and-how-to-use-it/
+
+pod details:
+    kubectl get pods/<podname> -o yaml
+    kubectl get pods/my-kafka-0 -o yaml
+
+
+============================== k8s daemonset: =============================
+
+https://collabnix.github.io/kubelabs/DaemonSet101/
+- kubectl get daemonsets/prometheus-daemonset
+- kubectl describe daemonset/prometheus-daemonset
+- kubectl create -f daemonset.yml --record 
+    * The –record flag will track changes made through each revision.
+
+
+
+==================== k8s CRD: ===================================================================
+
+https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/
+
+
+========================= k8s version check: ============================
+
+    https://kubernetes.io/releases/
+    https://www.containiq.com/post/kubectl-version
+    kubectl version --short
+    kubeadm version
+
+=================== k8s installation on centos7: ==================================
+
+    https://www.tecmint.com/install-kubernetes-cluster-on-centos-7/
+    https://computingforgeeks.com/install-kubernetes-cluster-on-centos-with-kubeadm/
+
+    upgrade:
+        https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/
+
+
+
+============================= envFrom vs env in k8s manifest: ==================
+
+    * envFrom is used to pickup env from other location (configMap, secret) etc.
+    * env is used to directly specify environment key/value
+
+    https://gist.github.com/troyharvey/4506472732157221e04c6b15e3b3f094 
+    sample:
+      envFrom:
+          - configMapRef:
+              name: env-configmap
+          - secretRef:
+              name: env-secrets
+
+
+======================================  imagePullSecretsName ===========================================================================
+
+imagePullSecretsName:   
+    * https://www.ibm.com/docs/en/cloud-private/3.2.0?topic=images-creating-imagepullsecrets-specific-namespace
+
+    kubectl create secret docker-registry tariniregistrykey --docker-server=<cluster_CA_domain>:8500 --docker-username=<user_name> --docker-password=<user_password> --docker-email=<user_email>
+
+create registry key:
+      * kubectl create secret docker-registry docker-repo-secret --docker-server='docker-development-virtual.artifactory.comtech-idn.com' --docker-username='srinath.badam' --docker-password='Dec22(!!'
+
+delete secret:
+  kubectl delete secret docker-repo-secret
+
+deployment.yaml:
+        use the above registry key as 'imagePullSecrets' in deployment file as shown below and remove 'imagePullPolicy'
+
+        # imagePullPolicy: Never (comment or remove)
+
+        imagePullSecrets:
+        - name : {{ .Values.imagePullSecretsName }}      
+
+values.yaml: (Incase of helm)
+      imagePullSecretsName: "tariniregkey"
+
+
+==================================== Postgres master pod ? =========================
+
+postgres:
+  kubectl get pods --show-labels -l application=spilo | grep master  (postgres)
+
+
+
+============================== Redis Master POD ? ==================================
+
+redis:
+  kubectl exec -it dlp-redis-fserv-master-6c7ffb5f8b-5fslx -- bash
+    dlp-redis-fserv-master-6c7ffb5f8b-5fslx              1/1     Running                  135 (50d ago)           153d
+    dlp-redis-node-0                                     2/2     Running                  0                       19h
+    dlp-redis-node-1                                     2/2     Running                  1 (138d ago)            153d
+    dlp-redis-node-2                                     2/2     Running                  0                       19h
+
+  redis-cli
+    * info ( check for role:master)
+  redis-cli info | grep ^role
+    * role:master
+
+    
+===================== pod container process visibility ============================
+
+- all containers in a pod can see each other process
+
+
+======================= sideCar container: =======================================
+
+  https://medium.com/bb-tutorials-and-thoughts/kubernetes-learn-sidecar-container-pattern-6d8c21f873d
+
+
+
+============================= k8s privilege process capability restriction: ====================================
+
+- Defining Privileges and Access Control Settings for Pods and Containers in Kubernetes
+    * https://medium.com/kubernetes-tutorials/defining-privileges-and-access-control-settings-for-pods-and-containers-in-kubernetes-2cef08fc62b7 ****
+
+- https://dbpilot.net/3-ways-to-list-all-iptables-rules-by-a-non-root-user/
+
+- https://unix.stackexchange.com/questions/385109/can-you-list-iptables-as-a-non-root-user-and-why
+    * It appears iptables needs both CAP_NET_RAW and CAP_NET_ADMIN to be able to read the tables
+
+- how a privilege pod can be hacked
+    * https://www.cncf.io/blog/2020/10/16/hack-my-mis-configured-kubernetes-privileged-pods/
+
+- Kubernetes security context and privileges
+    * https://kubernetes.io/docs/concepts/workloads/pods/#privileged-mode-for-pod-containers  ****
+    * https://kubernetes.io/docs/tasks/configure-pod-container/security-context/ ******
+
+- DAC vs MAC
+    * https://www.redhat.com/en/topics/linux/what-is-selinux
+
+- process capabilities:
+    *  https://man7.org/linux/man-pages/man7/capabilities.7.html *****
+    * With Linux capabilities, you can grant certain privileges to a process without granting all the privileges of the root user
+
+Summary :
+ In a nutshell, traditional Unix implementations have two classes of processes: (1) privileged processes (whose user ID is 0, referred to as root or as superuser) and (2) unprivileged processes (that have a non-zero UID).In contrast to privileged processes that bypass all kernel permission checks, unprivileged processes have to pass full permission checking based on the process’s credentials such as effective UID, GID, and supplementary group list. Starting with kernel 2.2, Linux has divided privileged processes’ privileges into distinct units, known as capabilities. These distinct units/privileges can be independently assigned and enabled for unprivileged processes introducing root privileges to them. Kubernetes users can use Linux capabilities to grant certain privileges to a process without giving it all privileges of the root user. This is helpful for improving container isolation from the host since containers no longer need to write as root — you can just grant certain root privileges to them and that’s it.
+ 
+analysis:
+  Even if the root user is used in the image running in the pod, than also we can limit the process capabilities by specifying limited list of capabilities in security context section in k8s yml file
+
+
+
+YML example:
+
+    containers:
+    - name: linux-cpb-cont
+      image: supergiantkir/k8s-liveliness
+      securityContext:
+        capabilities:
+          add: ["NET_ADMIN"] (only operations such as interface configuration, administration of IP firewall, modifying routing tables, enabling multicasting, etc)
+          -------- or ----------
+          privileged: true   (all capabilities)
+
+
+====================================  securityContext: ==============================================
+
+- https://www.cncf.io/blog/2020/10/16/hack-my-mis-configured-kubernetes-privileged-pods/
+- https://kubernetes.io/docs/concepts/workloads/pods/#privileged-mode-for-pod-containers
+- https://kubernetes.io/docs/tasks/configure-pod-container/security-context/ *****
+- https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#securitycontext-v1-core ****
+
+Sample:
+---------
+apiVersion: v1
+kind: Pod
+metadata:
+  name: security-context-demo
+spec:
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 3000
+    fsGroup: 2000
+  volumes:
+  - name: sec-ctx-vol
+    emptyDir: {}
+  containers:
+  - name: sec-ctx-demo
+    image: busybox:1.28
+    command: [ "sh", "-c", "sleep 1h" ]
+    volumeMounts:
+    - name: sec-ctx-vol
+      mountPath: /data/demo
+    securityContext:
+      privileged: false
+
+
+securityContext
+        https://www.golinuxcloud.com/kubernetes-securitycontext-examples/ *****
+        https://snyk.io/blog/10-kubernetes-security-context-settings-you-should-understand/
+        https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+
+        securityContext:
+          runAsUser: 1001
+          runAsGroup: 1002
+          fsGroup: 1002
+          fsGroupChangePolicy: "Always"
+
+fsgroup:
+        https://snyk.io/blog/10-kubernetes-security-context-settings-you-should-understand/
+        The fsGroup setting defines a group which Kubernetes will change the permissions of all files in volumes to when volumes are mounted by a pod. The behavior here is also controlled by the fsGroupChangePolicy , which can be set to onRootMismatch or Always
+   
+run as non root user:
+    https://kodekloud.com/community/t/use-of-runasuser-and-fsgroup/12994/4
+
+runasuser: 
+
+    https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#:~:text=In%20the%20configuration%20file%2C%20the,any%20containers%20of%20the%20Pod.
+
+
+folder permission:
+
+        https://discuss.kubernetes.io/t/write-permissions-on-volume-mount-with-security-context-fsgroup-option/16524        
+        * The only solution I found so far is to run initcontianer with root and provide the permission to the directory from mapped volume but I have got more than 100 services on K8S and adding init containers would slow down everything.
+            initContainers:
+          - name: volume-mount-hack
+            image: busybox
+            command: ["sh", "-c", "chown -R 501:501 /opt"]
+            volumeMounts:
+            - name: logging-volume
+              mountPath: /opt/var/logs/docker
+
+
+============================ pod failure analysis: ========================================
+
+https://kubernetes.io/docs/tasks/debug/debug-application/determine-reason-pod-failure/
+  kubectl get pod c415-vas-collectionserver-659f8b8fc6-t4vmc --output=yaml  
+  kubectl get pod c415-vas-collectionserver-659f8b8fc6-t4vmc -o go-template="{{range.status.containerStatuses}}{{.lastState.terminated.message}}{{end}}"
+
+k8s commad:
+  if command is given, it will override the entrypoint in docker image
+
+
+
+
+
+
+
+    
+merge multiple config map using volume mounts 
+----------------------------------------------
+
+https://stackoverflow.com/questions/49287078/how-to-merge-two-configmaps-using-volume-mount-in-kubernetes
+
+
+create each config map as below:
+  kubectl create configmap vmlcsite-cm --from-file vmss/vmlcSite.yml  
+  kubectl create configmap dlpsite-cm --from-file vmss/dlpSite.yml  
+
+
+merge them all with single config map:
+  volumes:
+    - name: appconfig
+      projected:
+        sources:
+        - configMap:
+            name: dlpsite-cm
+        - configMap:
+            name: vmlcsite-cm
+        - configMap:
+            name: vmlcsiteupdateable-cm
+        - configMap:
+            name: tcs-cm
+
+
+Each config map can be accessed as:
+    - name: collectionserver-config-init
+        image: collectionserver-config-init:0.0.5
+        imagePullPolicy: Never
+        command:
+          - sh
+          - -c
+          - /opt/tcs/collection-server-config/setup.sh /mnt/init
+        volumeMounts:
+          - mountPath: /mnt/init
+            name: appconfig
+
+config-update.sh:
+      here $configMapDir is /mnt/init        
+      vmlcSiteFile=$configMapDir/vmlcSite.yml
+
+
+============================ POD resource limit ============================================
+
+https://jira.comtech-idn.com/browse/ENTLPPROJECT-2687
+
+install matrics server: 
+  We should install metrics-server (https://github.com/kubernetes-sigs/metrics-server) to allow us to invoke kubectl top. I used the helm chart to install. Note that I had to indicate --kubelte-insecure-tls. We would likely want to do this without this flag.
+    * cat params.yaml
+    args:
+    - --kubelet-insecure-tls
+    * helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
+    * helm install metrics-server -f params.yaml metrics-server/metrics-server
+
+check limit commands:
+  kubectl top pods
+  kubectl top pod --containers=true | grep collection (memory/cpu usage for each container in pod)
+  kubectl top pod --containers=true | grep rfsp
+  kubectl top pod c437-vas-asla-consumer-6dcffdcb86-l6x7h
+  kubectl top pod c437-vas-collectionserver-6c9bc9ff95-dh8ws
+  kubectl top pod --namespace default
+  kubectl get po -n chaos-testing
+  kubectl top pod <pod-name>
+  kubectl top pod | grep rfsp
+  kubectl top pod c415-vas-collectionserver-6545c866d9-snsl7 --namespace=default
+  kubectl top pod | grep c437-vas-collectionserver-6c9bc9ff95-dh8ws
+
+API server check:
+  kubectl describe apiservice v1beta1.metrics.k8s.io
+  kubectl get po -n kube-system
+  kubectl top pod -n kube-system
+
+helm metrics-server location:
+  vim .cache/helm/repository/metrics-server-index.yaml
+
+stress test using Chaos Mess:
+  https://chaos-mesh.org/blog/how-to-efficiently-stress-test-pod-memory/
+
+liveness-readiness probe:
+  https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+
+
+Memory limit check in pod:
+  https://chaos-mesh.org/blog/how-to-efficiently-stress-test-pod-memory/
+  /usr/src/app $ cat /sys/fs/cgroup/memory/memory.limit_in_bytes
+  524288000   
+  The output is displayed in bytes and translates to 500 * 1024 * 1024.
+
+
+k8s manage memory/cpu limit:
+  https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+  https://kubernetes.io/docs/tasks/configure-pod-container/assign-memory-resource/ ****
+  https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/ *****
+
+
+k8s resource metrics API:
+  datadoghq.com/blog/how-to-collect-and-graph-kubernetes-metrics/ ****
+  https://kubernetes.io/docs/tasks/debug/debug-cluster/resource-metrics-pipeline/ *****
+  https://github.com/kubernetes-sigs/metrics-server
+  used for checking resource(mem/cpu) usage
+
+
+with rfsp grid generation load:
+  [centos@C437-KMA-01 bitnami-helm-charts]$ kubectl top pod --containers=true | grep rfsp
+  c437-vas-rfsp-server-d98c6cc75-z2sjw               rfspserver-app           1844m         5399Mi
+  c437-vas-rfsp-server-d98c6cc75-z2sjw               rfspserver-cli           0m           0Mi
+  c437-vas-rfsp-server-d98c6cc75-z2sjw               sdmgr                    16m          22Mi
+
+
+---------------------------- K8s Worker Nodes ---------------------------------------------
+
+Worker node block size:
+  - /tcs/dlpdeplib/vnf-manifest/manifests
+
+
+-------------------------- K8s yml file --------------------------------------
+
+- run multiple commands:
+  * https://stackoverflow.com/questions/33979501/kubernetes-passing-multiple-commands-to-the-container
+  * https://rotadev.com/kubernetes-passing-multiple-commands-to-the-container-dev/
+
+    command: ["/bin/sh", "startServerProd.sh"] (working)
+    command: ["/bin/bash", "-c", "tail -f /dev/null"] (working)
+
+    command: ["/bin/bash","-c","touch /foo && echo 'here' && ls /"]
+    command:
+        - bash
+        - -c
+        - command_1 && command_2
+
+     command: ['bash', '-c', 'ls -lrth', 'tail -f /dev/null']
+
+     
+
+     
+
+- containers is mandatory in yml file
+    * error: error validating "sdmgrtest.yml": error validating data: ValidationError(Deployment.spec.template.spec): missing required field "containers" in io.k8s.api.core.v1.PodSpec; if you choose to ignore these errors, turn validation off with --validate=false 
+
+------------------------- K8s image multi-run testing ---------------------------
+  update *.yml file
+    image: rfspserver:1.0.1
+        command:
+          - bash
+          - -c
+          - tail -f /dev/null
+   run *.yml file
+   update *.prop file and run start-server.sh
+
+------------------------------ kubernates secrets ----------------------------------
+
+***** Secret Values from environment variables:
+secretKeyRef:
+		name: mysecret ( secret name )
+		key: username (secret key name )
+
+containing the base64 decoded values of the secret data
+
+***** display all secrets:
+kubectl get secret collection-server-client -o go-template='{{range $k,$v := .data}}{{"### "}}{{$k}}{{"\n"}}{{$v|base64decode}}{{"\n\n"}}{{end}}'
+
+
+------------ K8s IPV6 Support -----------
+- https://jira.comtech-idn.com/browse/COLLECTIONSERVER-129
+- ipFamilyPolicy: PreferDualStack  for collectionserver K8 manifest
+- The POD will support IPv6 and IPv4. So all the interfaces including ELS , NNAV , Consumer and Status Services will support IPv4 and IPv6
+
+
+------------K8s config Map  --------------
+https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/
+Add ConfigMap data to a specific path in the Volume (can be a host dir). Use the path field to specify the desired file path for specific ConfigMap items. Use the kubectl create configmap command to create ConfigMaps from directories, files, or literal values.
+
+e.g : kubectl create configmap app-config --from-file vmlc_init_shared/
+
+spec:
+  containers:
+    - image:
+	  command:
+          - sh
+          - -c
+          - /opt/tcs/collection-server-config/setup.sh /mnt/init
+      volumeMounts:
+          - name: appconfig
+            mountPath: /mnt/init
+            
+   volumes:
+        - name: appconfig
+          configMap:
+            name: app-config (it is host directory)
+
+
+----------- K8s Volume -------------------
+
+https://kubernetes.io/docs/concepts/storage/volumes/
+
+kubernates POD has a shared path and container path. POD shared path can be shared accross PODS.
+Container path can be visible within that POD
+
+Volume Types:
+1. configMap
+2. hostPath : A hostPath volume mounts a file or directory from the host node's filesystem into your Pod
+3. emptyDir - An emptyDir volume is first created when a Pod is assigned to a node, and exists as long as that Pod is running on that node. It is available during container restarts
+
+  * https://kubernetes.io/docs/concepts/storage/volumes/
+  * Depending on your environment, emptyDir volumes are stored on whatever medium that backs the node such as disk or SSD, or network storage.When a Pod is removed from a node for any reason, the data in the emptyDir is deleted permanently.
+  * when file copied to volume (empty {}), the file will be visible at the location in the pod, not in the node.
+
+  spec:	
+	containers:
+	 - image:
+	   env:
+          - name: SHARED_VOLUME_PATH
+            value: /home/tcsapp
+       volumeMounts:
+          - name: configfilecfg
+            mountPath: /home/tcsapp
+          
+	volumes:
+        - name: configfilecfg
+          emptyDir: {}
+
+K8s Persistence Volumes (PVC):
+  https://stackoverflow.com/questions/57401526/how-to-delete-persistent-volumes-in-kubernetes
+  
+  delete all PVC:
+     kubectl -n default delete pvc --all --grace-period=0 --force
+
+  delete pvc and pods:
+    kubectl -n default delete all,pvc --all --grace-period=0 --force
+
+  PVC size:
+    - update pvc size in dlpSite.yml
+
+------------- Issues: --------------------------
+Issue-1 -> iptables giving permission issue while running in k8s
+
+https://www.stackrox.com/post/2020/01/kubernetes-networking-demystified/	
+https://docs.docker.com/network/iptables/#:~:text=Add%20iptables%20policies%20before%20Docker's%20rules&text=All%20of%20Docker's%20iptables%20rules,any%20rules%20Docker%20creates%20automatically.	
+
+
+--------------- Difference ------------------
+1. Kubernetes NodePort vs LoadBalancer vs Ingress? When should I use what?
+	- https://medium.com/google-cloud/kubernetes-nodeport-vs-loadbalancer-vs-ingress-when-should-i-use-what-922f010849e0
+	- https://kubernetes.io/docs/concepts/services-networking/ingress/
+	
+
+============================================= Kubernetes ==================================================
+https://kubernetes.io/docs/tutorials/kubernetes-basics/
+
+
+
+-------------------------- Services, Load Balancing, and Networking ------------------------------
+
+
+Service: 
+
+  1. Kubernetes gives Pods their own IP addresses and a single DNS name for a set of Pods, and can load-balance across them
+
+  2. In Kubernetes, a Service is an abstraction which defines a logical set of Pods and a policy by which to access them. 
+
+  3. The set of Pods targeted by a Service is usually determined by a selector
+
+  4. A Service in Kubernetes is a REST object, similar to a Pod
+
+  5. Every node in a Kubernetes cluster runs a kube-proxy. kube-proxy is responsible for implementing a form of virtual IP for Services of type other than ExternalName
+
+Connecting Applications with Services:----
+  1. This means that containers within a Pod can all reach each other's ports on localhost, and all pods in a cluster can see each other without NAT. The rest of this document elaborates on how you can run reliable services on such a networking model.
+
+Networking: ----
+  
+  Overview:
+    https://sookocheff.com/post/kubernetes/understanding-kubernetes-networking-model/ *****
+    https://medium.com/google-cloud/understanding-kubernetes-networking-pods-7117dd28727 ****
+    https://www.bmc.com/blogs/kubernetes-networking/ ***
+    https://www.stackrox.com/post/2020/01/kubernetes-networking-demystified/
+    https://alesnosek.com/blog/2017/02/14/accessing-kubernetes-pods-from-outside-of-the-cluster/
+  
+  readiness and liveness probe:
+      - https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/
+      - It's also worth noting that even though health checks are not exposed directly through the Ingress, there exist parallel concepts in Kubernetes such as readiness probes that allow you to achieve the same end result. 
+
+
+
+
+
+
+

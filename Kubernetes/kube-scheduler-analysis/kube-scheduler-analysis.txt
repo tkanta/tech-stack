@@ -1,0 +1,85 @@
+
+
+-------------------------------------configuration that affect kube scheduler ---------------------------------------
+
+
+The Kubernetes scheduler is responsible for assigning pods to nodes in a cluster based on various factors. There are several configuration options that can affect the behavior of the kube-scheduler. Here are some key configuration parameters:
+
+Pod Priority and Preemption: The kube-scheduler can prioritize certain pods over others based on their priority class. You can configure priority classes for your pods, and the scheduler will take them into account when making scheduling decisions. Additionally, you can enable preemption to allow lower-priority pods to be evicted in favor of higher-priority pods.
+
+Node Selector and Affinity: You can specify node selectors or affinity rules in your pod specifications to influence the scheduler's decision. Node selectors allow you to define constraints on which nodes the pod can be scheduled, based on labels assigned to the nodes. Affinity rules provide more fine-grained control over pod placement, allowing you to specify preferences and anti-affinities between pods and nodes.
+
+Resource Requirements and Limits: Pods can specify their resource requirements (e.g., CPU and memory) and limits. The scheduler takes these requirements into consideration when assigning pods to nodes, ensuring that the nodes have sufficient resources to accommodate the pod's demands.
+
+Taints and Tolerations: Nodes can be tainted to repel certain pods from being scheduled on them. Pods, in turn, can specify tolerations for specific taints, indicating that they can tolerate being scheduled on tainted nodes. This configuration can be used to influence pod placement based on specific node properties or characteristics.
+
+Scheduling Policies and Plugins: The kube-scheduler supports various scheduling policies and plugins that can be enabled or customized to influence the scheduling decisions. For example, you can configure the inter-pod affinity/anti-affinity policy, the pod topology spread constraints, or even write custom schedulers using scheduler plugins.
+
+Resource Scarcity and QoS: If there is a shortage of resources in the cluster, such as CPU or memory, the scheduler may make decisions based on the Quality of Service (QoS) classes of the pods. Pods with higher QoS classes (e.g., Guaranteed) are given priority over pods with lower QoS classes (e.g., Burstable or BestEffort).
+
+Scheduling Constraints and Limits: You can set constraints and limits on the number of pods that can be scheduled on a node or in a namespace. These constraints help prevent resource overutilization and ensure fair distribution of resources among pods.
+
+These are some of the key configuration aspects that can affect the behavior of the kube-scheduler and influence pod placement decisions in a Kubernetes cluster.
+
+
+
+
+
+----------------------how to distributes pods with many deployments having same image. ----------------------------------------------------------------
+
+
+When you have multiple deployments with the same image and you want to distribute the pods evenly across the available nodes in your Kubernetes cluster, you can use a combination of labels, node selectors, and affinity rules. Here's a step-by-step approach:
+
+Add Labels to Nodes: Start by adding labels to the nodes in your cluster. For example, you can add a label like node-type=worker to indicate that a node is a worker node.
+
+Create Deployments: Create multiple deployments with the same image that you want to distribute. Make sure to define unique labels for each deployment.
+
+Define Node Selector: In the pod template specification of each deployment, add a node selector that matches the label(s) you applied to the nodes. For example, if you labeled your nodes with node-type=worker, add the following to the pod template specification:
+
+yaml
+Copy code
+spec:
+  nodeSelector:
+    node-type: worker
+Define Pod Affinity/Anti-Affinity: To ensure that the pods are evenly distributed across nodes, you can use pod affinity or anti-affinity rules. Add the following to the pod template specification of each deployment:
+
+yaml
+Copy code
+spec:
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                    - <deployment-label>
+            topologyKey: "kubernetes.io/hostname"
+Replace <deployment-label> with the unique label you defined for each deployment. This rule will ensure that the scheduler tries to avoid scheduling pods with the same label on the same node.
+
+Apply Deployments: Apply the deployment manifests to your Kubernetes cluster using kubectl apply or any other deployment method you prefer.
+
+With these configurations in place, the kube-scheduler will take into account the node selectors and affinity rules when making scheduling decisions. It will distribute the pods with the same image across available nodes that match the node selector, and the affinity rules will help in spreading the pods evenly across different nodes.
+
+Note: Keep in mind that the actual distribution of pods may also depend on factors such as resource availability, pod priorities, and other scheduling configurations in your cluster.
+
+
+
+
+requiredDuringSchedulingIgnoredDuringExecution 
+vs
+preferredDuringSchedulingIgnoredDuringExecution
+-------------------------------------------------------------------------------------------------------
+
+requiredDuringSchedulingIgnoredDuringExecution : The scheduler can't schedule the Pod unless the rule is met. This functions like nodeSelector , but with a more expressive syntax. 
+
+preferredDuringSchedulingIgnoredDuringExecution : The scheduler tries to find a node that meets the rule
+
+
+
+--------------------------------------------------- k8s affinity ------------------------------------------------------------
+
+https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
