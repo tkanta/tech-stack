@@ -1,0 +1,142 @@
+
+
+------------------- analysis -------------
+* pull-artifacts.yaml 
+* k8s-cluster-setup.yaml
+* deploy_helmchart.yaml
+
+
+------------------------ directories ------------------------------------
+
+ls -lrt /tmp/packages/install_images/
+
+
+
+------------------------- commands ------------------------------------
+
+k8s:
+	
+	check version:
+		https://www.airplane.dev/blog/kubectl-version
+		kubectl version 
+		kubectl version --short
+
+Linux:
+	
+	get first location url from bom file:
+		grep location /home/{{ cloud_user }}/manifests/helm_values/bom.yaml | sed -n '1p' | sed 's/location:/ /'
+		sed -n '1p' : select first row
+		sed 's/location:/ /' : replace location with empty
+    
+    cut:
+    	https://linuxize.com/post/linux-cut-command/
+    	df -h /tmp | grep -v Filesystem | awk '{print $4}' | cut -d G -f1
+    	df -h /tmp | grep -v Filesystem | awk '{print $1}' | cut -d / -f2-4
+    
+    grep:
+    	https://www.cyberciti.biz/faq/howto-use-grep-command-in-linux-unix/
+    	grep -v Filesystem  /tmp ( it matches only those lines that do not contain the given word )		
+    	cat /proc/cpuinfo | grep -i 'Model'
+    	grep -l 'root' /etc/passwd
+    	
+------------------------ Ansible ----------------------------------------
+
+
+modprobe:
+	https://docs.ansible.com/ansible/latest/collections/community/general/modprobe_module.html
+	* community.general.modprobe module – Load or unload kernel modules
+
+
+delegateTo:
+	https://www.middlewareinventory.com/blog/ansible-delegate_to/
+	* As ansible delegate_to is a directive, not an individual module, It integrates with other modules and it controls the task execution by deciding which host should run the task at runtime.
+
+Inventory_hostname:
+	https://www.middlewareinventory.com/blog/ansible-inventory_hostname-ansible_hostname-variables/
+
+fetch:
+	* https://www.toptechskills.com/ansible-tutorials-courses/ansible-fetch-module-tutorial-examples/#:~:text=The%20fetch%20module%20is%20used,location%20on%20the%20remote%20host.S
+		- Ansible’s fetch module transfers files from a remote host to the local host. This is the reverse of the copy module.
+
+
+failed_when vs changed_when:
+	https://www.middlewareinventory.com/blog/ansible-changed_when-and-failed_when-examples/
+
+
+inventory file organization:
+	https://docs.ansible.com/ansible/latest/inventory_guide/intro_inventory.html
+
+
+-------------------------- k8s networking ------------------------------------
+
+
+br_netfilter:
+	- https://community.sisense.com/t5/knowledge/kubernetes-dns-linux-issue-caused-by-missing-br-netfilter-kernel/ta-p/5399
+	- https://engineerbetter.com/blog/debugging-kubernetes-networking/ ****
+
+	br_netfilter kernel module missing:
+		We started searching the Internet for the exact error and found this article: Debugging Kubernetes Networking. Others had the same problem and performed a rigorous DNS troubleshooting in their cluster.
+
+		In the end the root cause was attributed to the absence of the br_netfilter kernel module on some of the nodes. In our case, after the nodes restarted, the  Linux node's iptables did not correctly view bridged traffic because the br_netfilter kernel model was not running on 2 out of 3 nodes. We could check that by listing the content of the /proc/sys/net folder on the affected nodes:
+
+
+----------------------- k8s installation ------------------------------------------
+
+
+crictl:
+	https://kubernetes.io/docs/tasks/debug/debug-cluster/crictl/		
+	* crictl is a command-line interface for CRI-compatible container runtimes
+
+PriorityClass:
+	* https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#:~:text=A%20PriorityClass%20is%20a%20non,value%2C%20the%20higher%20the%20priority.	
+
+cluster setup:
+	https://devopscube.com/setup-kubernetes-cluster-kubeadm/	
+
+
+
+======================================= pull_artifacts.yaml =====================================================
+
+Role: get_bundle:
+-----------------
+install_dir: "/tmp/packages"
+* Extract k8s_images.tgz and packages.tgz
+
+Role: k8s-install:
+------------------
+
+
+Role: pull_artifacts
+--------------------
+* pull application artifacts from artifactory
+
+
+
+======================================= k8s-cluster-setup.yaml ==================================================
+
+Role: haproxy (on master)	
+-------------------------
+
+task: Setup statistics file for HAProxy records
+	/var/lib/haproxy/stats
+
+
+
+
+
+====================================== deploy_helmchart.yaml ==============================================
+
+Role: k8s-helm-deploy (deploy ingress controllers for each site_vips and ingress defined in dcp-Site.yaml )
+
+	Reference : D:\Onedrive-location\OneDrive - iSpace\Techstack\Domain\Telecom\Comtechtel\networking\vip-to-ingress-network-flow\vip-to-ingress-network-flow.txt
+
+	main.yaml:
+		- name: "Generate ingress controllers values file"
+			* It will generate values files for each ingress defined in dcp-Site.yaml at /home/ubuntu/manifests/helm_values
+				-rwxr-xr-x 1 ubuntu ubuntu  2264 Jun 13 05:53 oam-ingress-controller.yaml
+				-rwxr-xr-x 1 ubuntu ubuntu  2264 Jun 13 05:53 wsn-ingress-controller.yaml
+				-rwxr-xr-x 1 ubuntu ubuntu  2262 Jun 13 05:53 sbi-ingress-controller.yaml
+				-rwxr-xr-x 1 ubuntu ubuntu  2269 Jun 13 05:53 core-ingress-controller.yaml
+
+		- name: "deploy ingress controller  from values file"
+			* It will deploy ingress controller (localrepo/kubernetes-ingress) for each value files defined above

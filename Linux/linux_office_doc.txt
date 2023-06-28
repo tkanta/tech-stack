@@ -514,17 +514,47 @@ user creation:
 		sudo useradd testpp
 		sudo passwd testpp (test1@)
 
------------------ mkdir with permission ----------------------------
 
-mkdir -m 1777 test ( create dir with permission )
+================================== Unix permission =====================================
 
------------------ sticky bit permission -----------------------------
+mkdir with permission:
 
-- This permission does not affect individual files. However, at the directory level, it restricts file deletion. Only the owner (and root) of a file can remove the file within that directory
-		- https://www.thegeekstuff.com/2013/02/sticky-bit/
-		- https://www.redhat.com/sysadmin/suid-sgid-sticky-bit
+		mkdir -m 1777 test ( create dir with permission )
+
+sticky bit permission:
+
+		- This permission does not affect individual files. However, at the directory level, it restricts file deletion. Only the owner (and root) of a file can remove the file within that directory
+				- https://www.thegeekstuff.com/2013/02/sticky-bit/
+				- https://www.redhat.com/sysadmin/suid-sgid-sticky-bit
+
+what is 's' in srwxr-xr-x:
+		https://askubuntu.com/questions/919952/what-does-the-s-in-srwxr-xr-x-in-the-ls-output-mean		
 		
-		
+		sample: 
+			srwxr-xr-x 1 root root 0 Jun 19 23:11 /var/lib/haproxy/stats
+
+		From the ls manual:
+			The file type is one of the following characters:
+
+			‘-’ regular file
+			‘b’ block special file
+			‘c’ character special file
+			‘C’ high performance (“contiguous data”) file
+			‘d’ directory
+			‘D’ door (Solaris 2.5 and up)
+			‘l’ symbolic link
+			‘M’ off-line (“migrated”) file (Cray DMF)
+			‘n’ network special file (HP-UX)
+			‘p’ FIFO (named pipe)
+			‘P’ port (Solaris 10 and up)
+			‘s’ socket
+			‘?’ some other file type
+
+			So, that's a Unix socket. It could be meaningful, since sockets are created by processes to listen for requests. Use lsof to determine what process is using that socket.
+
+			You may need to use sudo with lsof, if the socket is opened by a process running as another user:
+
+
 
 ------------------ run background process ----------------------------
 

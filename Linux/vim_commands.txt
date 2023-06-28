@@ -13,7 +13,8 @@ Press y to replace the match or l to replace the match and quit. Press n to skip
 	* :%y (copy all lines)
 
 
-global search reaplace:
-		https://kb.iu.edu/d/acoj
-		:%s/$releasever/7/g
-		:%s/download.docker.com/dockerproject.com/g
+------------------- global search reaplace: -----------------
+
+https://kb.iu.edu/d/acoj
+:%s/$releasever/7/g
+:%s/download.docker.com/dockerproject.com/g

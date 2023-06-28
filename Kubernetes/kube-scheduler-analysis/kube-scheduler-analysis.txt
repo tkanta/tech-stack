@@ -1,6 +1,18 @@
 
 
--------------------------------------configuration that affect kube scheduler ---------------------------------------
+
+============================================== k8s affinity =====================================================
+
+https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
+
+
+============================================== k8s Topology spread constraint ========================================
+
+https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+
+
+
+------------------------------------- configuration that affect kube scheduler ---------------------------------------
 
 
 The Kubernetes scheduler is responsible for assigning pods to nodes in a cluster based on various factors. There are several configuration options that can affect the behavior of the kube-scheduler. Here are some key configuration parameters:
@@ -68,18 +80,56 @@ Note: Keep in mind that the actual distribution of pods may also depend on facto
 
 
 
+----------------------------------------- global minimum calculation in maxskew  ----------------------------------
 
-requiredDuringSchedulingIgnoredDuringExecution 
-vs
-preferredDuringSchedulingIgnoredDuringExecution
--------------------------------------------------------------------------------------------------------
+*** maxskew is not always gives the desired result because, achieving the global minimum may not always be possible due to various constraints such as node capacity, resource requirements, and other scheduling considerations. Kubernetes will do its best to balance the pods based on the defined constraints and maxSkew value
+
+*** Global minimum : The "global minimum" in this context refers to the ideal distribution that Kubernetes aims to achieve, where the difference in the number of pods on each node is minimized. the minimum number of matching pods in an eligible domain or zero if the number of eligible domains is less than MinDomains. 
+       e.g 4 pods in 4 nodes, global minimum is 1. 
+
+
+
+If you're referring to a scenario where maxSkew is used in conjunction with calculating a "global minimum" in Kubernetes, it likely relates to the concept of pod anti-affinity and achieving workload distribution across nodes.
+
+In Kubernetes, maxSkew is a parameter used in pod anti-affinity rules to define the maximum allowed imbalance or skew in the distribution of pods across nodes. It is used to ensure that pods of a particular type or with specific labels are spread out evenly across the available nodes.
+
+When maxSkew is set, Kubernetes attempts to schedule pods in a way that minimizes the difference in the number of pods on each node. The "global minimum" in this context refers to the ideal distribution that Kubernetes aims to achieve, where the difference in the number of pods on each node is minimized.
+
+For example, let's say you have a scenario where you have three nodes and want to distribute a set of pods across them. You define a maxSkew value of 1, indicating that the maximum allowed difference in the number of pods on any two nodes is 1.
+
+Kubernetes will try to schedule the pods in a way that minimizes the difference in the number of pods across the nodes. Ideally, it would distribute the pods in a way that achieves the global minimum, where the difference in the number of pods on each node is as small as possible.
+
+However, achieving the global minimum may not always be possible due to various constraints such as node capacity, resource requirements, and other scheduling considerations. Kubernetes will do its best to balance the pods based on the defined constraints and maxSkew value.
+
+It's important to note that the specific implementation and behavior may vary depending on the Kubernetes version and the configuration of your cluster.
+
+
+
+
+requiredDuringSchedulingIgnoredDuringExecution - vs - preferredDuringSchedulingIgnoredDuringExecution
+=================================================================================================================
 
 requiredDuringSchedulingIgnoredDuringExecution : The scheduler can't schedule the Pod unless the rule is met. This functions like nodeSelector , but with a more expressive syntax. 
-
 preferredDuringSchedulingIgnoredDuringExecution : The scheduler tries to find a node that meets the rule
 
 
 
---------------------------------------------------- k8s affinity ------------------------------------------------------------
+================================ topologySpreadConstraints  and affinity  precendence =============================
 
-https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
+Summary:
+    *** In terms of precedence, affinity rules take precedence over topologySpreadConstraints. This means that if there is a conflict between an affinity rule and a topologySpreadConstraint, the affinity rule will be prioritized. Kubernetes will first try to satisfy the affinity requirements and then consider the topologySpreadConstraints to distribute the pods across the desired topological domains.
+
+
+
+In Kubernetes, both topologySpreadConstraints and affinity rules can be used to influence pod scheduling decisions. However, they serve different purposes and operate at different levels of precedence.
+
+Affinity rules, such as nodeAffinity or podAffinity, are used to express preferences or requirements for pod placement based on node labels or other pod labels. They allow you to define rules like "place this pod on a node with a specific label" or "place this pod on a node that already has pods with specific labels." Affinity rules have a higher precedence than topologySpreadConstraints.
+
+On the other hand, topologySpreadConstraints are used to control the spread of pods across different topology domains, such as nodes, racks, or availability zones, to achieve better fault tolerance and high availability. They ensure that pods of a specific label or type are distributed across different topological domains based on a defined spread strategy. topologySpreadConstraints are evaluated after affinity rules.
+
+In terms of precedence, affinity rules take precedence over topologySpreadConstraints. This means that if there is a conflict between an affinity rule and a topologySpreadConstraint, the affinity rule will be prioritized. Kubernetes will first try to satisfy the affinity requirements and then consider the topologySpreadConstraints to distribute the pods across the desired topological domains.
+
+It's worth noting that even though affinity rules have higher precedence, they do not guarantee pod placement. Scheduling decisions are also influenced by other factors such as resource availability, node constraints, and other scheduling considerations.
+
+
+
