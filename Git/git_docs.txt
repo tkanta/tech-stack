@@ -1,0 +1,209 @@
+
+
+---------------------------- Git Commands --------------------------------
+
+git config --list --show-origin 			   (Display all configuration)
+git config --system --unset credential.helper  ( unset credential helpers)
+git switch master 							   ( switch branch )
+
+
+
+---------------------- undo a reset --hard  ---------------------------------
+
+If you have performed a git reset --hard and want to undo it, you can use the git reflog command to find the commit hash of the commit you want to restore. The git reflog command displays a log of all the recent HEAD positions and allows you to navigate through them.
+
+Here's how you can undo a git reset --hard:
+
+Open your Git repository in the command line or terminal.
+
+Run git reflog to see a list of recent actions and their corresponding commit hashes. The output will look something like this:
+
+	f2a34b7 HEAD@{0}: reset: moving to f2a34b7
+	78cde4a HEAD@{1}: commit: Some previous commit
+	a3b2f1d HEAD@{2}: commit: Another previous commit
+
+Identify the commit hash corresponding to the state you want to restore. In this example, you would look for the commit hash before the reset entry.
+
+Once you have identified the commit hash, run git reset --hard <commit-hash>. Replace <commit-hash> with the actual commit hash you found in the previous step.
+For example:
+	git reset --hard 78cde4a
+
+This command will move your HEAD and the branch pointer to the specified commit, effectively undoing the hard reset.
+
+Please note that this method works as long as the reflog contains the reference to the commit you want to restore. If the reflog has been pruned or the commit is no longer available, it may not be possible to recover it easily.
+
+
+--------------------------git: checkout with commit: ---------------------
+
+https://github.com/zalando/postgres-operator/tags
+$ git describe 5f6ba67e3f8cb59cb9a2f4db22f12e55326a182d
+kors-2757-g5f6ba67
+git checkout kors-2757-g5f6ba67
+
+------------------ git upgrade to latest : windows ---------------------
+
+https://stackoverflow.com/questions/13790592/how-to-upgrade-git-on-windows-to-the-latest-version
+git update-git-for-windows
+
+------------------------ git stash -------------------------------------
+
+https://www.atlassian.com/git/tutorials/saving-changes/git-stash#:~:text=The%20git%20stash%20command%20takes,committed%3A%20new%20file%3A%20style.
+
+git stash
+
+
+------------------------ Ignore files: ---------------------------------
+
+https://zellwk.com/blog/ignoring-files-from-npm-package/	
+
+
+---------------------- git checkin --------------------------------------
+
+git status -uno
+git add build.bashrc
+git commit -m "GMLCPC-941 - sample commit"
+
+# Use this to push the new branch to the git server for the first time
+git push origin GMLCPC-941
+ 
+# To push any further commits in this branch
+git push
+
+--------------------- git config: ----------------------------------------------
+		
+https://stackoverflow.com/questions/12254076/how-do-i-show-my-global-git-configuration
+git config --global --list
+~/.gitconfig
+
+------------------ Git Certificate Error ----------------------------------------
+
+Issue: unable to access 'https://git.': SSL certificate problem: self signed certificate in certificate chain
+
+https://mattferderer.com/fix-git-self-signed-certificate-in-certificate-chain-on-windows
+
+git config --list --show-origin (Display all configuration)
+
+
+---------------------- GIT Http error ---------------------------------------------
+
+Issue: GitLab remote: HTTP Basic: Access denied and fatal Authentication
+
+- https://stackoverflow.com/questions/47860772/gitlab-remote-http-basic-access-denied-and-fatal-authentication (Working)
+
+Commands: (Using Git Bash)
+	git config --system --unset credential.helper
+	git clone https://git.comtech-idn.com/location/positioning/rfspserver
+		Username for 'https://git.comtech-idn.com': tarani.negi
+		Password for 'https://tarani.negi@git.comtech-idn.com':
+
+------------------------ Cherry pick ------------------------------------------------
+
+Git cherry-pick:
+ 	https://www.git-tower.com/learn/git/faq/cherry-pick
+ 	https://stackoverflow.com/questions/9339429/what-does-cherry-picking-a-commit-with-git-mean
+
+ 	git cherry-pick 4fbcb3622ea395d3ac6e0e452cb48602fedf1e40 --no-commit (don't auto commit, put in staging)
+
+------------------ merge commits using git rebase / reset --------------------------------------
+
+https://www.internalpointers.com/post/squash-commits-into-one-git
+
+Using Rebase:----
+	git log
+
+	git rebase -i 6394dc 
+		- in the beanch, choose last commit_id before, you want merge all commits
+
+	popup window 
+		- where you replace 'pick' with 's' for the lines that you want to merge
+
+	popup window  
+		- for commit message
+
+	git push -f origin 
+		- push changes for feature branch to remote
+
+Using Reset: -----
+	* https://www.howtogeek.com/devops/how-does-git-reset-actually-work-soft-hard-and-mixed-resets-explained/#:~:text=git%20reset%20%2D%2Dsoft%20%2C%20which,know%20what%20you're%20doing.
+
+	git reset --soft <commit-id> 
+		- In the branch, choose last commit_id before which you want merge all commits. This will bring all commit changes till the commit-id into staging area, so that you can make new single commit for all the changes )
+	
+	git push -f origin
+		- push changes with force option
+
+--------------- push feature branch to remote if detached HEAD ------------------------------------------
+git push --set-upstream origin feature/test-rebase-merge-commit
+
+
+-------------------------- Rebase Vs Merge ----------------------------
+
+- https://www.atlassian.com/git/tutorials/merging-vs-rebasing
+- https://www.edureka.co/blog/git-rebase-vs-merge/ ***
+- https://stackoverflow.com/questions/804115/when-do-you-use-git-rebase-instead-of-git-merge
+
+
+	- merge 
+		* Merge takes all the changes in one branch and merges them into another branch in one commit.
+		* commit history will not be uniform
+	- rebase 
+		* Rebase says I want the point at which I branched to move to a new starting point
+		* commit history will be uniform
+		* $ git checkout cool-feature
+		* $ git rebase master
+		* $ git checkout master
+		* $ git merge cool-feature
+
+When you rebase feature over main as shown below,  it will move all commits of feature branch to the tip of main branch, hence the feature branch will have a detached HEAD 
+	- git checkout feature
+	- git rebase main
+
+------------------------- Reset Vs Revert Vs Checkout -----------------------
+
+- https://www.pixelstech.net/article/1549115148-git-reset-vs-git-revert	
+- https://dev.to/neshaz/when-to-use-git-reset-git-revert--git-checkout-18je
+- https://www.atlassian.com/git/tutorials/resetting-checking-out-and-reverting	****
+		* You can also think of git revert as a tool for undoing committed changes, while git reset HEAD is for undoing uncommitted changes.
+
+- https://www.atlassian.com/git/tutorials/undoing-changes/git-revert#:~:text=The%20git%20revert%20command%20is%20a%20forward%2Dmoving%20undo%20operation,in%20regards%20to%20losing%20work.
+
+- https://www.atlassian.com/git/tutorials/resetting-checking-out-and-reverting
+
+
+checkout: 
+	A checkout is an operation that moves the HEAD ref pointer to a specified commit
+
+revert: 
+	A revert is an operation that takes a specified commit and creates a new commit which inverses the specified commit.It's important to understand that git revert undoes a single commit—it does not "revert" back to the previous state of a project by removing all subsequent commits.The git revert command is a forward-moving undo operation that offers a safe method of undoing changes. Instead of deleting or orphaning commits in the commit history, a revert will create a new commit that inverses the changes specified
+
+		git checkout hotfix 
+		git revert HEAD~2
+
+	sample:
+		git revert 76sdeb  
+			* revert a single commit
+		git revert OLDER_COMMIT^..NEWER_COMMIT
+			* revert a range of commit
+		git push  
+			* push the changes, -f is not required
+
+reset: 
+	A reset is an operation that takes a specified commit and resets the "three trees" to match the state of the repository at that specified commit.git reset, which does alter the existing commit history. For this reason, git revert should be used to undo changes on a public branch, and git reset should be reserved for undoing changes on a private branch.
+	
+	--soft – The staged snapshot and working directory are not altered in any way.
+	--mixed – The staged snapshot is updated to match the specified commit, but the working directory is not affected. This is the default option.
+	--hard – The staged snapshot and the working directory are both updated to match the specified commit.
+
+	Sample:
+		git reset --hard <commit-id> 
+			* reset up till the commit id, excluding the commit_id
+			* The staged snapshot and the working directory are both updated to match the specified commit.
+
+		git push -f 
+			* push the changes with -f option
+
+Git index 
+	It is a staging area between the working directory and repository. It is used to build up a set of changes that you want to commit together
+
+
+
