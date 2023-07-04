@@ -18,8 +18,11 @@ new Date().toString() : gives system data
 
 https://weekendprojects.dev/posts/fix-for-npm-error-code-self-signed-cert-in-chain/#:~:text=In%20this%20article%2C%20I%20went,upgrade%20to%20the%20latest%20version.
 
-- npm config set strict-ssl false	
-- npm start
+1. set NODE_TLS_REJECT_UNAUTHORIZED=0
+
+2. set strict-ssl
+	- npm config set strict-ssl false	
+	- npm start
 
 =============================== npmrc token: ===========================================================
 

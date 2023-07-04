@@ -1,0 +1,93 @@
+[4:26 PM] Venkata Ravi Theja Kanchibotla
+
+08:44:55.513 [kafka-producer-network-thread | producer-5] WARN  apache.kafka.clients.NetworkClient - [Producer clientId=producer-5] Error while fetching metadata with correlation id 77 : {LDR=INVALID_REPLICATION_FACTOR} 2021-04-12 08:46:26,142 kafka-producer-network-thread | producer-2 ERROR Unable to write to Kafka in appender [Global bootstrap.servers=kafka.default.svc.cluster.local:9092] org.apache.kafka.common.errors.TimeoutException: Expiring 1 record(s) for TRACE-GLOBAL-JSON-0:120004 ms has passed since batch creation  
+
+
+
+
+[4:28 PM] Venkata Ravi Theja Kanchibotla
+
+
+10:57:51.269 [kafka-producer-network-thread | producer-5] WARN  apache.kafka.clients.NetworkClient - [Producer clientId=producer-5] Error while fetching metadata with correlation id 114 : {LDR=INVALID_REPLICATION_FACTOR}
+
+Log.ActionData.Brokers=kafka.default.svc.cluster.local:9092
+
+================= Kafka + kubernates =============
+
+commands:
+	kubectl get pods
+	kubectl describe pods <pod-name> ( check node )
+	
+imp Links:	
+https://www.confluent.io/product/confluent-platform/flexible-devops-automation/?utm_medium=sem&utm_source=google&utm_campaign=ch.sem_br.nonbrand_tp.rmkt_tgt.kafka_mt.mbm_rgn.india_lng.eng_dv.all&utm_term=%2Bkafka%20%2Bkubernetes&creative=&device=c&placement=&gclid=EAIaIQobChMIsYfv0eL67wIVwJ1LBR1gPgJ-EAAYASAAEgKVmfD_BwE
+
+https://bitnami.com/stack/kafka/helm
+
+https://docs.bitnami.com/tutorials/deploy-scalable-kafka-zookeeper-cluster-kubernetes/ *****
+
+Topic creation: kubectl --namespace default exec -it $POD_NAME -- kafka-topics.sh --create --zookeeper ZOOKEEPER-SERVICE-NAME:2181 --replication-factor 1 --partitions 1 --topic mytopic
+
+consumer : kubectl --namespace default exec -it $POD_NAME -- kafka-console-consumer.sh --bootstrap-server KAFKA-SERVICE-NAME:9092 --topic mytopic --consumer.config /opt/bitnami/kafka/conf/consumer.properties &
+
+producer:
+kubectl --namespace default exec -it $POD_NAME -- kafka-console-producer.sh --broker-list KAFKA-SERVICE-NAME:9092 --topic mytopic --producer.config /opt/bitnami/kafka/conf/producer.properties
+
+======================================= helm ===========================================
+
+imp links: 
+	https://helm.sh/
+	https://helm.sh/docs/
+	https://helm.sh/docs/intro/quickstart/ *****
+	https://helm.sh/docs/intro/using_helm/ *****
+	https://artifacthub.io/packages/helm/bitnami/kafka ( artifact hub ) ******
+	https://docs.confluent.io/5.1.2/installation/installing_cp/cp-helm-charts/docs/index.html ( confluent kafka )
+	
+commands:
+	helm install <release-name> <chart-name>
+	helm status kafka
+	helm show values kafka
+	helm search hub kafka ( helm search hub searches the Artifact Hub )
+	helm search repo kafka ( helm searches the local repo configured )
+	helm list ( list releases )
+	helm uninstall happy-panda (uninstall a release from the cluster)
+	helm delete my-release ( The command removes all the Kubernetes components associated with the chart and deletes the release.)
+
+helm status kafka:
+------------------
+
+NAME: kafka
+LAST DEPLOYED: Wed Apr  7 11:36:26 2021
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+** Please be patient while the chart is being deployed **
+
+Kafka can be accessed by consumers via port 9092 on the following DNS name from within your cluster:
+
+    kafka.default.svc.cluster.local
+
+Each Kafka broker can be accessed by producers via port 9092 on the following DNS name(s) from within your cluster:
+
+    kafka-0.kafka-headless.default.svc.cluster.local:9092
+    kafka-1.kafka-headless.default.svc.cluster.local:9092
+    kafka-2.kafka-headless.default.svc.cluster.local:9092
+
+To create a pod that you can use as a Kafka client run the following commands:
+
+    kubectl run kafka-client --restart='Never' --image localhost:5000/bitnami/kafka:2.6.0-debian-10-r78 --namespace default --command -- sleep infinity
+    kubectl exec --tty -i kafka-client --namespace default -- bash
+
+    PRODUCER:
+        kafka-console-producer.sh \
+
+            --broker-list kafka-0.kafka-headless.default.svc.cluster.local:9092,kafka-1.kafka-headless.default.svc.cluster.local:9092,kafka-2.kafka-headless.default.svc.cluster.local:9092 \
+            --topic test
+
+    CONSUMER:
+        kafka-console-consumer.sh \
+
+            --bootstrap-server kafka.default.svc.cluster.local:9092 \
+            --topic test \
+            --from-beginning

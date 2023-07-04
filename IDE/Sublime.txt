@@ -1,0 +1,17 @@
+
+------------------ replace something with newline: ---------------------------
+
+Use Find > Replace, or (Ctrl+H), to open the Find What/Replace With Window, and use Ctrl+Enter to indicate a new line in the Replace With inputbox.
+
+
+------------- install json formatter --------------------
+https://stackoverflow.com/questions/34896840/sublime-text-json-formatter-shortcut
+CTRL+SHIFT+P 
+type install package
+select Pretty Json
+
+
+------------- Replace content with new line:  --------------
+- ctrl + shift + p (type regex and select)
+- select content to replace and  type (ctrl + h)
+- type (\n) in replace section and enter

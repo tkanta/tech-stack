@@ -1,0 +1,650 @@
+
+ISR : InSync Replica
+ZooKeeper : Leader and ISR for a partition is determined by zookeeper.
+
+--------------------- Tuning: -----------------------------
+https://medium.com/@ankurrana/things-nobody-will-tell-you-setting-up-a-kafka-cluster-3a7a7fd1c92d
+
+
+
+-------------------- Differences ----------------------------------
+
+- listener vs advertise_listener	
+			* listeners is what the broker will use to create server sockets.
+				advertised.listeners is what clients will use to connect to the brokers.
+				The two settings can be different if you have a "complex" network setup (with things like public and private subnets and routing in between).
+			* listeners=PLAINTEXT://admin2.local.9092
+			  advertized.listeners=PLAINTEXT://kafka3.local:9092	
+			  
+------------------- Kafka Theory -------------------------
+
+1. Kafka broker is also called bootstrap server. Client can get details of all broker by just connecting to one broker.
+   Client just need to make Metadata request for getting all details of all brokers.
+
+2. zookeeper will manage broker, select leader, notify any changes to kafka
+
+3. Replication factor is for Topic partition (T-A:p1,T-A:p2)
+4. Topic offset and consumer offset
+5. Producer Acknowledgement
+	- acks 0: producer won't wait for acknowledgement
+	- acks 1: producer wait for acknowledgement
+	- acks all: producer wait for acknowledgement from leader+replica
+
+6. Consumer will commit offset in Kafka topic named '__consumer_offset'
+	- 3 delivery symantics
+		- At most once ( offset committed asap message received )
+		- At least once ( offset committed asap message is processed )
+		- Exactly once ( achieved with kafka-to-kafka workflow, or if kafka-to-externalSystem we need a idempotent consumer)
+
+7. To read data from a topic, the following configuration is needed for the consumers. you only need to connect to one broker (any broker) and just provide the topic name you want to read from. Kafka will route your calls to the appropriate brokers and partitions for you!		
+
+8. Two consumers that have the same group.id (consumer group id) will read from mutually exclusive partitions
+
+9. To produce data to a topic, a producer must provide the Kafka client with.  you only need to connect to one broker (any broker) and just provide the topic name you want to write to. Kafka Clients will route your data to the appropriate brokers and partitions for you!
+
+-------------- Kafka Setup --------------------
+1. Download : https://kafka.apache.org/downloads
+2. tar -xvf kafka_2.13-2.6.0.tgz
+3. bin/zookeeper-server-start.sh config/zookeeper.properties
+4. bin/kafka-server-start.sh config/server.properties
+5. https://kafka.apache.org/quickstart
+
+----------- Kafka CLI -----------------------
+C:\Apache_Kafka\kafka_2.13-2.6.0
+1. Relication factor of a partition can't be greater than number of brokers
+2. bin/kafka-topics.sh --zookeeper 127.0.0.1:2181 --topic TariniFirstTopic --create --partitions 3 --replication-factor 1 (create Topic)
+3. bin/kafka-topics.sh --zookeeper 127.0.0.1:2181 --list ( list the topics)
+4. bin/kafka-topics.sh --zookeeper 127.0.0.1:2181 --topic TariniFirstTopic --describe ( describe about topic configuration)
+	- Leader and Isr resembles broker Id. Relicas means number of Isr besides main partition
+5. bin/kafka-topics.sh --zookeeper 127.0.0.1:2181 --topic TariniFirstTopic --delete ( delete a topic )	
+6. bin/kafka-console-producer.sh --broker-list 127.0.0.1:9092 --topic TariniFirstTopic ( producer )
+7. bin/kafka-console-consumer.sh --bootstrap-server 127.0.0.1:9092 --topic TariniFirstTopic ( consumer )
+8. bin/kafka-console-consumer.sh --bootstrap-server 127.0.0.1:9092 --topic TariniFirstTopic --from-beginning ( consume from beginning)
+9. bin/kafka-console-consumer.sh --bootstrap-server 127.0.0.1:9092 --topic TariniFirstTopic --group my_fisrt_group	( --from-beginning 	won't work if group is spcified, as it will commit to offset once message is read)
+10. bin/kafka-consumer-groups.sh --bootstrap-server 127.0.0.1:9092 --list ( list all consumer )
+	- if you invoke console-consumer and don't mentioned group, Kafka will create a default consumer group.
+	
+11. bin/kafka-consumer-group.sh --bootstrap-server 127.0.0.1:9092 --describe --group my_first_group ( describe offset and consumer )	
+
+12. bin/kafka-consumer-group.sh --bootstrap-server 127.0.0.1:9092 --group my_first_group --reset-offsets (--shift-by -2/2)  --to-earliest --execute --topic TariniFirstTopic ( reset offset for topic )
+
+13. kafka-console-producer --broker-list 127.0.0.1:9092 --topic first_topic --property parse.key=true --property key.separator=,
+> key,value
+> another key,another value
+
+( Producer with keys )
+
+14. kafka-console-consumer --bootstrap-server 127.0.0.1:9092 --topic first_topic --from-beginning --property print.key=true --property key.separator=, ( Consumer with keys )
+	
+15. 
+
+
+Window:
+	zookeeper-server-start.bat .\config\zookeeper.properties
+	kafka-server-start.bat .\config\server.properties
+	kafka-topics.bat --zookeeper 127.0.0.1:2181 --list
+	kafka-topics.bat --zookeeper 127.0.0.1:2181 --topic TariniFirstTopic --create --partitions 3 --replication-factor 2
+	kafka-topics.bat --zookeeper 127.0.0.1:2181 --topic TariniFirstTopic --describe
+	kafka-console-producer.bat --broker-list 127.0.0.1:9092 --topic TariniFirstTopic
+	kafka-console-consumer.bat --bootstrap-server 127.0.0.1:9092 --topic TariniFirstTopic
+	kafka-console-consumer.bat --bootstrap-server 127.0.0.1:9092 --topic EVENT --from-beginning ( Consumer )
+	kafka-console-consumer.bat --bootstrap-server 127.0.0.1:9092 --topic TariniFirstTopic --group TariniGroup ( it will create a group and put consumer under this group )
+	kafka-consumer-groups.bat --bootstrap-server 127.0.0.1:9092 --list
+	kafka-consumer-groups.bat --bootstrap-server 127.0.0.1:9092 --group TariniGroup --reset-offsets  --to-earliest --execute --topic TariniFirstTopic ( we can reset topic offset using group )
+	kafka-consumer-groups.bat --bootstrap-server 127.0.0.1:9092 --describe --group TariniGroup
+	kafka-console-consumer.bat --bootstrap-server 127.0.0.1:9092 --topic TariniFirstTopic --group TariniGroup
+
+Window Comtech:***
+	bin\windows\kafka-topics.bat --zookeeper 127.0.0.1:2181 --list  ( shows all topics )
+	
+	bin\windows\kafka-console-consumer.bat --bootstrap-server localhost:9092 --topic TRACE-GLOBAL-JSON
+	
+	bin\windows\kafka-topics.bat --zookeeper 127.0.0.1:2181 --topic LDR --create --partitions 1 --replication-factor 1
+	
+	bin\windows\kafka-consumer-groups.bat --bootstrap-server 127.0.0.1:9092 --describe --group TestKafkaConsumer-LDR 
+	( give info on  GROUP : TOPIC : PARTITION : CURRENT-OFFSET : LOG-END-OFFSET : LAG  : CONSUMER-ID : HOST )
+    
+	bin\windows\kafka-console-consumer.bat --bootstrap-server 127.0.0.1:9092 --topic LDR --group TestKafkaConsumer-LDR  ( process messages - from last commited offset, means all lagging offset)
+	
+	bin\windows\kafka-console-consumer.bat --bootstrap-server 127.0.0.1:9092 --topic LDR --partition 0 --offset 'latest'  ( process messages from latest offset at 0 partition - when offset is given, we can't use group)	
+	
+	bin\windows\kafka-consumer-groups.bat --bootstrap-server 127.0.0.1:9092 --group TestKafkaConsumer-LDR --reset-offsets  --to-latest --execute --topic LDR ( we can reset topic offset using group )
+	
+	
+Kafka UI App:
+	https://www.conduktor.io/
+
+Kafka CLI Alternative:	
+	KafkaCat (https://github.com/edenhill/kafkacat) is an open-source alternative to using the Kafka CLI, created by Magnus Edenhill.	
+
+Kafka Java program;
+	Maven: (kafka-client:2.6.0, slf4j-simple:1.7.30)
+	Producer: 
+		- refer https://kafka.apache.org/documentation/#producerconfigs for producer configuration.
+		- Kafka producer needs a dependency com.fasterxml.jackson.core:jackson-databind:2.11.2 (for resolving error : Caused by: java.lang.ClassNotFoundException: com.fasterxml.jackson.databind.JsonNode)
+
+
+======================== Kafka Enterprise for Admin =============================
+
+1. Kafka exposes metrics through JMX
+2. Common places to host the kafka metrics
+	- ELK (elastic search + Kibana)
+	- Datadog
+	- New Relic
+	- Confluent Control Center
+	- Prometheus and grafana
+3. Monitoring
+	- https://kafka.apache.org/documentation#monitoring
+	- https://docs.confluent.io/current/kafka/monitoring.html
+	- https://www.datadoghq.com/blog/monitoring-kafka-performance-metrics/
+
+4. Kafka operation	
+	- Rolling restart of Brokers
+	- Updating the configuration
+	- Rebalancing partition
+	- Increasing partitions
+	- Increasing replication factor
+	- Adding / Replacing / Removing a Broker
+	- Upgrading kafka broker with zero downtime
+
+5. Kafka can be setup for Encryption, authentication, authorization
+	- Kafka security is fairly new and hard to configure
+	- Other language support python, go
+
+6. Kafka cMulti luster replication across geographical region
+	- Mirror Maker : open source tool that ships with kafka
+	- Netflix uses Flink
+	- Confluent has its own Kafka connect source
+	- Uber uses uReplicator
+
+
+========================= Kafka Extended API's ===================================
+
+- Kafka Connect and Stream
+	kafka -> Sink ( Consumer API - kafka connect sink)
+	Kafka -> Kafka (Consumer and Producer API - kafka stream)
+	Source -> Kafka (Producer API - kafka connect source)	
+- Provides fault tolerance, distribution, ordering, Idempotence, Scaling, Easy to setup ETL pipeline
+- https://www.confluent.io/hub/ ( Kafka connector site )
+- Kafka connect can be run in 2 modes ( standalone and distributed )
+- Connect API is for pushing/pulling data from Kafka Topic 
+- Stream API is for processing data from Kafka topic
+	- It will basically get the messages from a topic as a stream. Does some processing on the stream of messages and output it to another topic. A connector sink can be used to consume from this topic and store it into a (DB,Splunk,elastic) search atc.
+- Schema Registry 
+	-  Enforce data validation )
+	-  Uses Avro schema
+- API Selection
+	- https://medium.com/@stephane.maarek/the-kafka-api-battle-producer-vs-consumer-vs-kafka-connect-vs-kafka-streams-vs-ksql-ef584274c1e
+	
+----------- Gist:
+	1. If I produce to a topic that does not exist, by default ? by default Kafka automatically creates topics
+	2. When a topic is auto-created, how many partitions and replication factor does it have by default? by default it's 1 & 1, but these can be controlled by the settings num.partitions and default.replication.factor
+	3. if you invoke console-consumer and don't mentioned group, Kafka will create a default consumer group for the consumer? try running kafka-consumer-groups --list to see!
+    4. 	we can reset topic offset using group
+	5. Group will be create as part of the --group argument of consumer. Group helps in distributin msgs to consumer. Groups also helps in reseting offset.
+	6. topic -> zookeeper, 
+	   producer -> broker-list, 
+	   consumer -> bootstrap-server, 
+	   consumer-group -> bootstrap-server
+	   
+    7. Consumer coordinator rebalances conumers in a group during cusumer addition and deletion/down from a group.
+	8. Assign and Seek is to replay some messages if required by an application at certain offset.
+	9. Kafka bidirectional capability - client and broker with different version can work.
+	10. Configuration:
+		- https://kafka.apache.org/documentation/#producerconfigs
+		- https://kafka.apache.org/documentation/#consumerconfigs
+	11. I should block the producer.send() by adding .get() at the end ? Do not block your .send(). Instead, make sure to .close() your producer before shutting down your application
+	12. Producing with a key allows to... ? send the message to the same partition
+	13. If I don't use a key (or set key=null) ? messages will be sent to partitions in round robin
+	14. To allows consumers in a group to resume at the right offset, I need to set ? group.id
+	15. When my consumers have the same group.id ? they will read from mutually exclusive partition
+	16. If a consumer joins or leaves a group ? A rebalance happens to assigns partitions to all consumers
+	17. 
+
+
+-------------- Kafka Consumer / Stream config -----
+commit.interval.ms : The frequency with which to save the position (offsets in source topics) of tasks.
+	- https://kafka.apache.org/10/documentation/streams/developer-guide/config-streams.html
+
+auto.commit.interval.ms : The frequency in milliseconds that the consumer offsets are auto-committed to Kafka if enable.auto.commit is set to true. ( not for Stream )
+	- https://stackoverflow.com/questions/38230862/need-clarification-about-kafka-auto-commit-and-auto-commit-interval-ms
+ 
+-------------- Twitter project --------------
+Developer account:
+		URL : https://developer.twitter.com/en/portal/register/keys
+		Usage: I intend to use this twitter feed to get real time stream into an application that will put data into kafka. This data will end up in elastic search at the end. This is just for POC purpose.No commercial application will result out of this and I don't have any user besides myself. Twitter data will not be displayed and will extract twitter data in low volume. 
+		Primary use:
+			Exploring the API
+		Account type:
+			Personal
+		Twitter username:
+			@NegiKanta
+		Email:
+			tarininegi@gmail.com	
+		app:
+			app name: kafka_elastic01
+			Api Key : BiQD0aZvgQDjICaI4PXJbqwDp
+			Api secret: Ig1aWEjsMdebjFroFSlOR8l77EIGdKYjKVBj1vgkc55tUb3PW8
+			Bearer Token: AAAAAAAAAAAAAAAAAAAAAGWpHQEAAAAAY3SLLtESzKe8iNnqEOWXaSjX4fM%3DtWjEFt8dU27V13LTsRqCdPTjiYmXcd4ttaOC4F0YxDYyGwNIkS
+			Access Token : 1287162253809082368-tLXbv403RmdrzSTj52HyZDRm8dtLve
+			Access Token Secret : 6YGUcceEyoC4y35LjbMnaYEEX1QakZzI1cHAZbDRwwdXu
+			
+		Twitter client for stream:
+			https://github.com/twitter/hbc
+			
+			
+=========================== Advance Topics Configuration ===================================
+
+
+https://kafka.apache.org/documentation/
+
+Updating Default Topic Configuration:
+-----------------------------------
+Default topic configuration options used by brokers may be updated without broker restart. The configs are applied to topics without a topic config override for the equivalent per-topic config. One or more of these configs may be overridden at cluster-default level used by all brokers.
+
+Topic-Level Configs:
+--------------------
+Configurations pertinent to topics have both a server default as well an optional per-topic override. If no per-topic configuration is given the server default is used. The override can be set at topic creation time by giving one or more --config options
+
+Server default Vs Topic configuration:
+-----------------------------------
+	log.segment.bytes == segment.bytes
+
+Github apache Kafka
+--------------------
+https://github.com/apache/kafka
+server properties:
+	https://github.com/apache/kafka/blob/trunk/config/server.properties	
+
+
+Topics COnfiguration:
+	- Replication factor
+	- # of partitions
+	- Message size
+	- Compression Level
+	- Log Clean up policy
+	- Min Insync Replicas
+	- Other configuration
+
+
+partitions and segments:
+-----------------------
+
+	log.segment.bytes = the max size of a single segment/file of a partition. (1GB)
+		* A smaller segment means
+			- more files per partition
+			- log compaction happens more often
+			- Kafka has to keep more file opened(Error: too many open files)
+		* How fast will I have new segments based on throughput?
+
+	log.segment.ms = the time kafka wait before commiting the segment if not full (1 week)			
+		* A smaller segment.ms
+			- you set max frequency for log compaction ( more frequent triggers )
+			- May be you want daily compation instead of weekly ?
+		* How often do you need a log compaction to happen ?
+
+	log.cleanup.policy=delete (default for all user topics)
+			- delete based on the age ( default 1 week)
+			- delete based on max size (default -1 = infinite)
+
+			log.retention.hours
+				- log.retention.hours define the time a message is stored on a topic before it discards old log segments to free up space (168 - 1week)
+			
+			log.retention.bytes
+				- log.retention.bytes is a size-based retention policy for logs, i.e the allowed size of the topic. Segments are pruned from the log as long as the remaining segments don't drop below log.retention.bytes. Function independent of log.retention.hours	( default -1 : infinite )
+			
+			retention bounded by 1 week:
+				log.retention.hours=168 and log.retention.bytes=-1
+			retention bounded by 500MB
+				log.retention.hours=17520 and log.retention.bytes=524288000
+
+			commands:
+
+					bin/kafka-configs.sh --bootstrap-server localhost:9092 --entity-type topics --entity-name my-topic
+  				--alter --add-config 'log.retention.hours=17520, log.retention.bytes=524288000' 
+
+	log.cleanup.policy=compact (default for topic __consumer_offset)
+		- Delete based on keys of your messages
+		- Will delete old segments after the active segment is committed
+		- Infinite time and space retention
+
+   How often does log cleanup happens?
+   	- Log cleanup happens on your partition segments anytime commit is happen.
+   	- Smaller/More segments, the log cleanup happens more often
+   	- Log cleanup shouldn't happen too often (takes CPU and RAM resources)
+   	- log.cleaner.backoff.ms = The cleaner checks for work every 15 secs
+
+   Log compaction:
+   -----------------
+	   	Delete the old data for the same Key and keeps the latest. Compact the old segments into few number of segments.
+
+	   	configs:
+
+		   	segment.ms=7days 
+		   		- (Max amount of time to close the Active segment, start creating new segment)
+		   	segment.bytes=1GB 
+		   		-(Max size of segment)
+		   	min.compaction.lag.ms= default 0 
+		   		-(how long to wait before a message can be compacted)
+		   	delete.retention.ms= default 24hours 
+		   		-	(wait before deleting data marked for compaction)
+		   	min.cleanable.dirty.ratio= default 0.5 
+		   		- ( higher => less compaction/more efficient cleaning, Lower => opposite) 
+
+	   	commands:
+	   		kafka-topics --zookeeper 127.0.0.1:2181 --create --topic employee-salary --partition 1 --replication-factor 1 --config cleanup.policy=compact --config min.cleanable.dirty.ratio=0.001 --config segment.ms=5000
+
+	   		kafka-console-consumer --bootstrap-server 127.0.0.1:9092 --topic employee-salary --from-beginning --property print.key=true --property key.separator=,
+
+	   		kafka-console-producer --broker-list 127.0.0.1:9092 --topic employee-salary --from-beginning --property parse.key=true --property key.separator=,
+
+   Insync Replica:
+   ---------------
+   	min.insync.replica=2, acks=all, replication.factor=3 ( It can be set at topic level or in server.properties)
+   	NOT_ENOUGH_REPLICAS error if brokers are down			
+
+   	min.insync.replica=2 (implies that at least 2 brokers that are ISR including leader must respond that they have data)
+
+
+
+topic configuration commands
+--------------------------------
+./kafka-topics.sh --zookeeper 127.0.0.1:2181 --list
+./kafka-topics.sh --zookeeper 127.0.0.1:2181 --create --topic configured-topic --partition 3 --replication-factor ./kafka-topics.sh --zookeeper 127.0.0.1:2181 --describe --topic configured-topic		 
+./kafka-configs.sh (Add/Remove entity config for a topic, client, user or broker)
+
+
+create config: ***
+		bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic my-topic --partitions 1 \
+	  --replication-factor 1 --config max.message.bytes=64000 --config flush.messages=1
+
+alter config: ***
+		bin/kafka-configs.sh --bootstrap-server localhost:9092 --entity-type topics --entity-name my-topic
+	  --alter --add-config max.message.bytes=128000  
+
+		bin/kafka-configs.sh --bootstrap-server localhost:9092 --entity-type topics --entity-name my-topic
+	  --alter --add-config 'log.retention.hours=17520, log.retention.bytes=524288000'
+
+	  ./kafka-configs.sh --zookeeper 127.0.0.1:2181 --entity-type topics --entity-name configured-topic --alter --add-config min.insync.replicas=2
+
+delete config: ***
+		bin/kafka-configs.sh --bootstrap-server localhost:9092  --entity-type topics --entity-name my-topic
+	  --alter --delete-config max.message.bytes
+  
+describe config: ***
+		bin/kafka-configs.sh --bootstrap-server localhost:9092 --entity-type topics --entity-name my-topic --describe
+		/kafka-configs.sh --zookeeper 127.0.0.1:2181 --describe --entity-type topics --entity-name configured-topic
+
+
+
+
+
+
+root@1f6a8ed03631:/opt/kafka_2.11-0.10.1.0/bin# ./kafka-configs.sh
+-----------------------------------------------------------------------
+Add/Remove entity config for a topic, client, user or broker
+Option              Description
+------              -----------
+--add-config        Key Value pairs of configs to add.
+                      Square brackets can be used to group
+                      values which contain commas: 'k1=v1,
+                      k2=[v1,v2,v2],k3=v3'. The following
+                      is a list of valid configurations:
+                      For entity_type 'topics':
+                        cleanup.policy
+                        compression.type
+                        delete.retention.ms
+                        file.delete.delay.ms
+                        flush.messages
+                        flush.ms
+                        follower.replication.throttled.
+                      replicas
+                        index.interval.bytes
+                        leader.replication.throttled.replicas
+                        max.message.bytes
+                        message.format.version
+                        message.timestamp.difference.max.ms
+                        message.timestamp.type
+                        min.cleanable.dirty.ratio
+                        min.compaction.lag.ms
+                        min.insync.replicas
+                        preallocate
+                        retention.bytes
+                        retention.ms
+                        segment.bytes
+                        segment.index.bytes
+                        segment.jitter.ms
+                        segment.ms
+                        unclean.leader.election.enable
+                    For entity_type 'brokers':
+                        follower.replication.throttled.rate
+                        leader.replication.throttled.rate
+                    For entity_type 'users':
+                        producer_byte_rate
+                        consumer_byte_rate
+                    For entity_type 'clients':
+                        producer_byte_rate
+                        consumer_byte_rate
+                    Entity types 'users' and 'clients' may
+                      be specified together to update
+                      config for clients of a specific
+                      user.
+--alter             Alter the configuration for the entity.
+--delete-config     config keys to remove 'k1,k2'
+--describe          List configs for the given entity.
+--entity-default    Default entity name for clients/users
+                      (applies to corresponding entity
+                      type in command line)
+--entity-name       Name of entity (topic name/client
+                      id/user principal name/broker id)
+--entity-type       Type of entity
+                      (topics/clients/users/brokers)
+--force             Suppress console prompts
+--help              Print usage information.
+--zookeeper <urls>  REQUIRED: The connection string for
+                      the zookeeper connection in the form
+                      host:port. Multiple URLS can be
+                      given to allow fail-over.
+
+
+
+
+
+============================== Kafka Cluster setup =====================================
+
+Kafka Basics:
+	- Kafka hold partition and server data
+	- They are unit of parallelism and distributed
+	- Kafka can handle 800,000 msg/sec
+
+kafka cluster size:
+	- More replication factor incur network communication between brokers, Ideal is 3.
+	- 3 zookeeper and 3 kafka broker is ideal
+	- In case of 3 broker, N-1 broker can be down if N is default replication factor.
+	- Producer and consumer request are spread out between different machine
+	- Data is spread out between brokers, that means less disk space is used per broker
+		* Topic partition are distributed across brokers
+	- we can scale horizontally
+	- The Leader may be responsible for talking to zookeeper Leader
+	
+
+Kafka configuration:
+	Needs a understanding of:
+		- Operating System Architecture.
+		- Server Architecture
+		- Distributed computing
+		- CPU operation
+		- Network performance
+		- Disk I/O
+		- RAM and Heap size
+		- Page Cache
+		- Kafka and Zookeeper
+
+   configuration:
+   	- There are 140 confugurations, with classification of mandatory, high, medium, and low
+   	- kafka configuration is an iterative process
+   	- min.insync.replica=3 is used when acks=true
+   	- zookeeper.connect=z1:2181,z2:2181,z3:2181/kafka : connect to zookeeper cluster and use kafka folder for any data storage
+
+
+ Kafka AWS setup:
+ 	- setup network security to allow kafka port (9092)
+ 		- configure all ports ( 9092, 2181, 2888, 3888)
+ 	- Create and attach EBS volume to kafka EC2	server
+ 		- configure EBS using setup-5-kafka-ebs.sh
+ 		- partition, format, and mount to /data/kafka
+ 		- df -h (shows all disk and its usage)
+ 			* /dev/xvda1 : root volume
+ 			* /dev/xvdf  : EBS volume mounted
+ 		- lsblk ( shows only disk )
+ 			
+ 	- Format EBS as XFS
+ 	- Make sure volume stay attached on reboot
+
+
+Kafka One broker setup and kafka commands (setup-6-kafka-single.sh):
+	- Augment file handle limit
+		* once you update file handle limit make sure to reboot the system
+	- Launch kafka on one machine
+	- setup kafka as service
+		* use setup-6-kafka-single.sh
+	- Once kafka is launched, It will print kafka configuration and connect with zookeeper message and kafka start message
+	- kafka will create many folder in zookeeper /kafka folder and it is registered itself in kafka/brokers folder
+		- other folders (cluster, controller, controller_epoch, brokers, admin, consumers, config, isr_change_notification)
+	- check /kafka/logs/server.logs
+	- when we are creating topic, we should give (--zookeeper zookeeper1:2181/kafka)
+	- kafka producer/consumer won't work if min.insync.replica is more than the number of brokers
+
+
+Hands on kafka multi-broker setup (setup-7-kafka-cluster.sh) :
+	- Make sure below config are different while setting up kafka properties for each kafka server.
+		* broker id 
+		* advertise_listeners
+	- Launch kafka and observe logs
+	- verify zookeeper that all brokers registered
+		* Sometimes kafka create stuff at root of zookeeper, We should delete those as it should only be creates under /kafka folder
+	- stop/start server and check logs/server.log, if any issue
+	- make sure to fix the __consumer_offsets topic
+		e.g : The min.insync.replica for __offset_topic value is 1, otherwise we can't read from a topic that is created in any broker.
+	- Now We can read the same data from any broker
+	
+	
+Testing the cluster (setup-8-test-kafka-cluster.sh):
+	- Make sure in a cluster setup, CLI	should contain zk / kafka list
+	- It create all broker same in terms of topics and data
+
+connect kafka from outside:
+	- we can connect to zookeeper using public IP
+		zookeeper-shell <PUB-IP>:2181
+	- we can't connect to kafka using public IP if it is not set in the advertise_listeners
+		kafka-console-consumer --bootstrap-server <PUB-IP>:9092 --topic first_topic --from-beginning
+
+Avertise Listener:
+	- It is the host to access kafka cluster (ADV_HOST)
+	- If the client is internal it can be private IP.
+	- If the client is external it should be Public IP and shouldn't change.
+	- Kafka cluster should be on a private network
+
+Cluster Management with Kafka Manager:
+	- it is used for topic create/delete, health check etc.
+	- run kafka mgr in docker
+	- setup-9-tools-kafka-manager.sh
+	- http://<ip>:9000
+		- make sure ZK/KFK instances are reachable from ths machine where kafka mgr is running
+		config for Add Cluster:
+			cluster ZK host: zookeeper1:2181,zookeeper2:2181,zookeeper3:2181	
+			kafka version: 0.10.1.0
+   - if a topic is not 100 percent distributes accross broker, it will show red. We can delete and recreate that topic to solve the issue.
+
+Kafka Resilience:
+	- setup-10-test-kafka-resiliency.sh
+	- connected to a broker
+	- create a topic 
+		* bin/kafka-topics.sh --zookeeper  zookeeper1:2181,zookeeper2:2181,zookeeper3:2181/kafka --create --topic fourth_topic --partitions 3 --replication-factor 3
+	- generate 10kb of data in a file
+	- start performance test by producing data to topic
+	- start consumer
+	- kill first kafka (sudo service kafka stop)
+		* will get NotLeaderForPartitionException and new Leader will be selected
+   - kill second kafka
+   	* NotLeaderForPartitionException and new Leader will be selected and also warning auto-commit offset
+   - kill third kafka
+		* Timeout Exception
+	- start all kafka one by one, all will running fine
+	- But a single broker (e.g 3)	will be elected as Leader for all partition
+	- We have to run Preferred Replica Election to distribute Leaders across Partitions
+	- If we stop a broker and delete all /data/kafka folder, the data folder will comes back again once the broker starts, because of replication factor
+
+
+Kafka Performance (I/O):
+	- XFS formatting is best. No tuning required
+	- Reads are sequential so disk type matters
+	- if read/write throughput is bottleneck
+		* it is possible to mount multiple disk in parallel
+		* The config is log.dirs=/disk1/kafka-logs,/disk2/kafka-logs,/disk3/kafka-logs	
+	- Kafka performance is constant with regards to the amount of data stored in Kafka
+		* Make sure you expire the data fast enough
+		* Make sure you monitor the disk performance
+
+
+Factors impacting kafka performance : (Network)
+	- Ensure zookeper, kafka broker are in same geography (should have low latency)
+	- Make sure you have high performance network			(need high network bandwidth)
+	- Monitor metwork usage overtime to figure out bottle neck 
+
+Factors impacting kafka performance : RAM
+	- Kafka Heap size can be configured when you launch Kafka
+		* export KAFKA_HEAP_OPTS="-Xmx 4g"
+		* no need to set -Xms
+		* kafka heap only increases if you have more partitions in Topic (in 1000's)
+		* vm.swappiness=0/1 (default is 60 in Linux)
+			- https://medium.com/@ankurrana/things-nobody-will-tell-you-setting-up-a-kafka-cluster-3a7a7fd1c92d
+		* Other RAM will be used for OS page cache. THis is use to buffer data to the disk, thats give kafka amazing performance.
+
+Factor impacting kafka performance : CPU
+	- CPU will not be performance bottle neck
+	- If you hace SSL enabled kafka has to encrypt/decrypt every payload
+	- Compression can be CPU bound if you force kafka to do it. But generally it is done in Prducer/Consumer.
+	- Make sure GC pauses are not too long
+
+Factor impacting kafka performance : OS
+	- 	Use Linux for production
+	-  increase file descritor limit to 100,000 as kafka opens many file for IO operation
+	- Make sure that kafka is only thing running in the machine. kafka and zookeeper should be in independent machine
+
+Other factors impacting kafka performance:
+	- Make sure to have enough file descriptor opened as Kafka opens 3 file descriptor for each topic-partition-segment that lives on the Broker
+	- Make sure to use Java-8 and Scala 2.12
+	- Tune GC implementation
+	- Set kafka Quotas to prevent unexpected spikes in usage
+
+
+How to change Kafka Broker Configuration:
+	- echo "unclean.leader.election.enable=false" >> config/server.properties
+	- change the property in every broker config/server.properties
+	- stop broker
+	- check logs/server.log for clean stop, before starting
+	- start broker
+
+Advance Kafka configuration Important Patameters:
+	- auto.create.topics.enable=true (set to false in production to have control)
+	- backgroud.threads=10 (Increase if you have good CPU)
+	- delete.topic.enable=false
+	- log.flush.interval.messages		(Don't ever change. Let you OS do it)
+	- log.retention.hours=168 ( default 1 week, but change to 24 if topic is full in 1 day)
+	- messages.max.bytes=1000012 ( default is 1 MB. It is better not to send message bigger that 1 MB)
+	- min.insync.replica=1 (set to 2 if you want to be extra safe)
+	- num.io.threads=8 (increase if network io is bottleneck)
+	- num.network.threads=3 (increase if network is bottleneck)
+	- num.recovery.threads.per.data.dir=1 (set to number of disk)
+	- num.replica.fetcher=1 (increase if your replicas are lagging)
+	- offset.rentention.minutes=1440 (after 24 hours you loose offset)
+	- unclean.leader.election.enable=true (set to false if you don't want data loss)
+	- zookeeper.session.timeout.ms=6000 (increase if you timeout often)
+	- broker.rack=null (set to your availability zone in AWS e.g a, b, c)
+	- default.replicationl.factor=1 ( set to 2 or 3 in kafka)
+	- num.partitions=1 ( set from 3 to 6 in your cluster)
+	- quota.producer.default=10485760 (set Quotas to 10 MBs)
+	- quota.consumer.default=10485760 (set Quotas to 10 MBs)
+
+

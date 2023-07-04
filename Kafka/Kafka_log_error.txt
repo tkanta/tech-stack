@@ -1,0 +1,25 @@
+
+======================= Kafka commit message Error =======================
+
+06:23:31.257 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] DEBUG rfsp.service.impl.RFSPBSANotificationServiceImpl - Operation completed for process id 104
+06:23:31.286 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] DEBUG rfsp.service.impl.RFSPBSANotificationServiceImpl - Add and Modify operation are completed.
+06:23:31.322 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] INFO clients.consumer.internals.ConsumerCoordinator - [Consumer clientId=consumer-1, groupId=rfsp] Failing OffsetCommit request since the consumer is not part of an active group
+06:23:31.365 [org.springframework.kafka.KafkaListenerEndpointContainer#0-0-C-1] ERROR springframework.kafka.listener.LoggingErrorHandler - Error while processing: null
+org.apache.kafka.clients.consumer.CommitFailedException: Commit cannot be completed since the group has already rebalanced and assigned the partitions to another member. This means that the time between subsequent calls to poll() was longer than the configured max.poll.interval.ms, which typically implies that the poll loop is spending too much time message processing. You can address this either by increasing max.poll.interval.ms or by reducing the maximum size of batches returned in poll() with max.poll.records.
+
+at org.apache.kafka.clients.consumer.internals.ConsumerCoordinator.sendOffsetCommitRequest(ConsumerCoordinator.java:820) ~[kafka-clients-2.3.1.jar!/:?]
+at org.apache.kafka.clients.consumer.internals.ConsumerCoordinator.commitOffsetsSync(ConsumerCoordinator.java:692) ~[kafka-clients-2.3.1.jar!/:?]
+at org.apache.kafka.clients.consumer.KafkaConsumer.commitSync(KafkaConsumer.java:1454) ~[kafka-clients-2.3.1.jar!/:?]
+at org.springframework.kafka.listener.KafkaMessageListenerContainer$ListenerConsumer.commitIfNecessary(KafkaMessageListenerContainer.java:1968) ~[spring-kafka-2.3.4.RELEASE.jar!/:2.3.4.RELEASE]
+at org.springframework.kafka.listener.KafkaMessageListenerContainer$ListenerConsumer.processCommits(KafkaMessageListenerContainer.java:1791) ~[spring-kafka-2.3.4.RELEASE.jar!/:2.3.4.RELEASE]
+at org.springframework.kafka.listener.KafkaMessageListenerContainer$ListenerConsumer.pollAndInvoke(KafkaMessageListenerContainer.java:940) [spring-kafka-2.3.4.RELEASE.jar!/:2.3.4.RELEASE]
+at org.springframework.kafka.listener.KafkaMessageListenerContainer$ListenerConsumer.run(KafkaMessageListenerContainer.java:901) [spring-kafka-2.3.4.RELEASE.jar!/:2.3.4.RELEASE]
+at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:515) [?:?]
+at java.util.concurrent.FutureTask.run(FutureTask.java:264) [?:?]
+at java.lang.Thread.run(Thread.java:834) [?:?]
+
+
+==================== Kafka warning for leaving group ===============================
+
+08:04:33.207 [kafka-coordinator-heartbeat-thread | rfsp] WARN clients.consumer.internals.AbstractCoordinator - [Consumer clientId=consumer-1, groupId=rfsp] This member will leave the group because consumer poll timeout has expired. This means the time between subsequent calls to poll() was longer than the configured max.poll.interval.ms, which typically implies that the poll loop is spending too much time processing messages. You can address this either by increasing max.poll.interval.ms or by reducing the maximum size of batches returned in poll() with max.poll.records.
+08:04:33.208 [kafka-coordinator-heartbeat-thread | rfsp] INFO clients.consumer.internals.AbstractCoordinator - [Consumer clientId=consumer-1, groupId=rfsp] Member consumer-1-0acf9298-299b-4f88-a9aa-3479b7153788 sending LeaveGroup request to coordinator kafka-1.kafka-headless.default.svc.cluster.local:9092 (id: 2147483646 rack: null)

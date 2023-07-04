@@ -1,0 +1,101 @@
+
+=================== Single Zookeeper setup ===========================
+
+1. Install necessary Java and other packages
+2. Disable RAM swap 
+	- It improves performance of zookeeper and Kafka
+3. Add host mapping in /etc/hosts
+4. Download and configure zookeeper
+5. Launch Zookeeper on the machine to test
+6. Setup Zookeeper as a Service
+
+setup-1-zookeeper-single.sh:
+----------------------------
+	
+	commands for swappiness:
+		* sudo sysctl vm.swappiness=1
+		* echo 'vm.swappiness=1' | sudo tee --append /etc/sysctl.conf
+
+	commands to check zookeeper:
+		* bin/zookeeper-shell.sh localhost:2181
+		* ls /
+		* echo "ruok" | nc localhost 2181 ; echo
+		* echo "ruok" | nc zookeeper2 2181 ; echo
+		* echo "stat" | nc zookeeper2 2181 ; echo
+		* nc -vz localhost 2181
+
+zookeeper as Service:
+--------------------
+logs:
+	cat logs/zookeeper.out
+
+zookeeper CLI
+--------------
+	- nc -vz localhost 2181
+	- zookeeper-shell-examples.sh
+	- watcher event is for only one time
+
+zookeeper Quorum setup:
+----------------------
+	- zookeeper/setup-2-zookeeper-quorum.sh
+	- zookeeper/zookeper.properties
+	- create AMI from existing machine
+		* Image  (Launch AMI in a VM)
+		* snapshot
+	- Create 3 machine from AMI and launch Zookeeper on them
+	- Test the Quorum
+		* sudo service zookeeper start
+		* nc -vz zookeeper1 2181 ( check zookeeper)
+		* check each server is connected to each other
+		* tickTime/initLimit/syncLimit are used for healthcheck that is used by zookeeper with each other
+		* update the properties files in these three server and should be same
+		* start all three server 
+		* Following and New Leader message will shownup as we start all
+		* check each zookeeper using 
+			- echo "ruok" | nc zookeeper2 2181 ; echo
+			- echo "stat" | nc zookeeper2 2181 ; echo
+		* When you create a node in one zookeeper, it will be created in other 2
+			- create /my-node "some data"
+		* check logs at kafka/logs/zookeeper.out
+
+	- Zookeeper health check
+		* clientPortAddress=172.28.77.12 (It is the eth0 port of the machine where zookeeper will listen to peer zookeeper 'ruok' command to provides health status)		
+
+	- zookeeper identity
+		- echo "1" > /data/zookeeper/myid ( location:  <dataDir>/myid)
+		- This file will provide zookeeper its identity
+
+4 letter word CLI:
+------------------
+	- zookeeper/four-letter-words.sh
+	- echo "wchc" | nc localhost 2181 ( shows how many watches kafka has on zookeeper data)
+		* others  "mntr" / "stat" / "ruok"
+	- more number of watch is a problem	
+
+
+zookeeper files used:
+---------------------
+/data/zookeeper
+	- myid (contains zk id)
+	- version-2 (contains all data accumulated by zk)
+		log.x (data file)
+
+Factors impacting zk performance:
+---------------------------------
+Latency is key for zk
+	- Fast disk SSD
+	- NO RAM swap
+	- separate disk for snapshot and logs
+	- High performance network, ZK instances should be close to each other
+	- Resonable number of zk (1, 3, 5)
+	- Isolate ZK from other processes		
+
+WebTools Machine:
+---------------
+	- setup-3-tools.sh
+	- zooNavigator management tools	
+	- tools/zoonavigator-docker-compose.sh
+	- setup/setup-4-zoonavigator.sh
+	- It is used to visualize zookeeper nodes
+	- we can login using connection string : 
+		* zookeeper1:2181,zookeeper2:2181,zookeeper3:2181

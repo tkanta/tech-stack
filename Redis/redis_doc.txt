@@ -1,0 +1,214 @@
+
+-------------- redis CLI commands ---------------
+
+SMEMBERS / SADD : used for set operation
+	smembers collection:userList (get members of this set)
+
+HMGET / HMSET:
+	hmset collection:users:collection "user" "collection" "pass" "Y29sbGVjdGlvbg=="  ( set key/value for map )
+	hmget collection:users:collection user  (get user key value from map, e.g collection)
+	
+
+HGETALL:	
+	hgetall collection:users:collection 	(get all hashmap k/v)
+
+FLUSHALL:
+	flushall	(flush all keys)
+
+GET / SET / DEL:
+	get 358239059042542 (get value for a key)
+	get collection:els:imei:358239059042542
+	set collection:els:msisdn:6692481404 "Hello"
+	set collection:els:msisdn:12346692481404345 "HI"
+	del collection:els:msisdn:12346692481404345
+
+KEYS:
+	keys * (get all keys)
+	keys collection* ( get all keys starts with collection)
+
+REDIS-CLI:
+	redis-cli -h <host> -p <port> (connect to remote host:port)
+	redis-cli -h admin2 -p 6381
+	
+--------------- Comtech redis setup ------------
+
+sudo helm delete dlp-redis
+cd kube-artifacts/bitnami-helm-charts/
+helm install -f /home/centos/manifests/helm/dlp-redis-values.yaml dlp-redis redis
+
+
+------------ Redis and Json ----------------
+1. https://redislabs.com/blog/redis-as-a-json-store/
+2. https://www.peterbe.com/plog/redis-vs-postgres-blob-of-json
+
+https://stackoverflow.com/questions/8986982/how-should-i-store-json-in-redis
+https://www.npmjs.com/package/redis-json 
+	- store json as hashmap, but with type infomation 
+	- also supports json manipulation
+https://www.npmjs.com/package/ioredis
+
+https://oss.redislabs.com/redisjson/#using-redisjson **** 
+	- needs to install redisJson in redis
+	- store json object as object tree 
+	- also supports json manipulation
+
+
+--------------- redis docker ---------------
+https://phoenixnap.com/kb/docker-redis
+
+docker run --name redis_local -p 6379:6379 -d redis	
+docker exec -it redis_local bash
+redis-cli
+ping -> pong
+
+
+redis commands:
+	- keys * ( get all keys)
+	- get <key> ( get the value of the key)
+
+ps command:
+apt-get update && apt-get install -y procps
+
+default user:
+-------------
+sadd "collection:userList" "collection"
+hmset "collection:users:collection" "user" "collection" "clientID" "ec714a90-75ff-11eb-9a4e-131b3f3fd8bd" "authData" "" "pass" "$2b$10$WfFC6eb31Z1pCIAJvvsA7.yYmOXmOPGdrmiiOE6Xmy7mF7pButCdK"
+
+latest user credentials:
+	hmset "collection:users:collection" "user" "collection" "clientID" "ec714a90-75ff-11eb-9a4e-131b3f3fd8bd" "authData" "" "pass" "Y29sbGVjdGlvbg=="
+
+
+Authorization Header:
+----------------------
+Y29sbGVjdGlvbjpjb2xsZWN0aW9u
+
+Google - POST /aml
+posagent - GET /aml
+POsagent - GET /zaxis
+GET /collection?source
+NextNav - POST/zaxis
+
+
+
+------------ Docker Mapping for Integration test -----------------
+
+docker run  -p 4321:4321  -it --entrypoint /bin/bash -v D:/code/zaxis/zaxiscollectionserver/els:/opt/tcs/els  node:10.21.0
+
+steps: 
+-> update config.json file (localhost -> host.docker.internal) if network="host" not provided in docker run
+-> remove package-lock.json
+
+-> docker run --name clsServer --privileged  -p 4321:4321  -it --entrypoint /bin/bash -v D:\Comtech_Project\Sprint\sprint-23\zaxiscollectionserver\els:/opt/tcs/els  node:10.21.0
+
+-> cd /opt/tcs/els 
+-> npm install
+-> npm start
+-> docker run clsServer ( next time)
+
+* node version needs to be 10.21.0 for all node dependency to work
+
+"modern-syslog": "^1.1.4",
+
+	
+-------------------- ioredis redis client -------------------------
+
+https://docs.redislabs.com/latest/rs/references/client_references/client_ioredis/
+https://github.com/luin/ioredis (Github)
+
+Learning
+--------
+We can throw an error from ioredis 'on' event callback but can't be thrown from callback in batch call redis.exec()
+
+
+---------------------- mail --------------------------------
+
+We are planning to from  below options  for  storing json  into redis
+
+1.	 ‘https://www.npmjs.com/package/redis-json’  for  storing  json object  into redis . We have tested it by  storing   json object directly using this module and  verified the  type  of  elements after  retrieval. The type remain  intact. We don’t have to parse/remap.
+
+2.	Or we can store  raw json string  directly
+a.	Parse json request  and set the encrypted the lat/lon
+b.	Stringyfy and store into redis
+c.	parse it on retrieval and set the decrypted  lat/lon
+d.	stringyfy again before sending the response.
+
+We Just wanted your view on this.
+
+Thanks
+Tarini
+console.log("redisport",config.redisConfig.redisPort)
+console.log("redishost",config.redisConfig.redisHost)
+console.log("config.dlpRedisSentinels",config.redisConfig.dlpRedisSentinels)
+
+
+------------------------------------ Redis ---------------------------------------------------
+
+------ Redis cheet-sheet		
+		- https://lzone.de/cheat-sheet/Redis
+		- https://redis.io/commands/set/
+
+----------------------------------- Redis Sentinels -------------------------------------
+
+====== ioredis =====
+
+		----- connection error
+			https://github.com/luin/ioredis/issues/944
+			https://github.com/luin/ioredis/issues/68
+
+		----- ioredis sentinels 'maxRetriesPerRequest' option
+			By default, all pending commands will be flushed with an error every 20 retry attempts. That makes sure commands won't wait forever when the connection is down.You can change this behavior by setting maxRetriesPerRequest
+			
+			const redis = new Redis({
+			  maxRetriesPerRequest: 1,
+			});
+
+			This option might work for sentinels, when sentinels is up and it provides the master redis instance address to the client	 
+		    This option is working fine for a single redis instance
+
+		------ ioredis sentinels retry strategy
+		    
+		    The default retry strategy for a single redis instance not available :    
+		    retryStrategy(times) {
+			    const delay = Math.min(times * 50, 2000);
+			    return delay;
+			}
+
+			The default retry strategy for sentinels, when all the sentinels are not available :
+
+			sentinelRetryStrategy(times){
+			  const delay = Math.min(times * 10, 1000);
+			  return delay;
+			}
+
+		----- debugging ioredis
+			DEBUG=ioredis:* node yourapp.js
+			https://github.com/luin/ioredis/issues/367
+
+
+========== sentinels fundamentals =========
+
+	https://redis.io/topics/sentinel
+	- sentinels provide master redis instance address to the client for connection.
+
+
+	----- ( sentinel password config)
+		https://stackoverflow.com/questions/60131705/error-when-trying-to-connect-to-sentinel-with-password-using-ioredis-nodejs-modu 
+
+	----- Forums
+		https://www.bountysource.com/teams/ioredis/issues
+
+	----- sentinels k8s cluster
+		- https://docs.bitnami.com/tutorials/deploy-redis-sentinel-production-cluster/	
+			
+	----- Sentinel cheet-sheet
+			- https://lzone.de/cheat-sheet/Redis%20Sentinel 
+			- commands:
+				redis-cli -p 26379
+				kubectl get svc ( get redis sentinel service e.g dlp-redis and its cluster id )
+				redis-cli -h <cluser-ip> -p 26379 ( connect to sentinels using cluster id )
+					$> info 				# full infos
+					$> sentinel masters 	# check master status 
+							"s_down,o_down,master"   # master is down
+							"master" 				 # master is up
+					$> sentinel get-master-addr-by-name <master name>	
+	

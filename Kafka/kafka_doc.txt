@@ -1,0 +1,314 @@
+
+
+========================== kafka on kubernetes ========================================
+
+https://johanngyger.medium.com/kafka-on-kubernetes-a-good-fit-95251da55837 ****
+https://kubernetes.io/docs/tutorials/stateful-application/zookeeper/
+https://github.com/Yolean/kubernetes-kafka
+
+
+Steps and Checks:
+----------------
+	RunTime:
+		Process: 
+		Memory:
+		Network:
+
+		Storage:
+			- Should use a persistent volume
+
+	Configuration:
+	Package Manager:
+		- Helm
+		- K8s operator
+	Performance Test
+	Monitoring GUI:
+		Prometheus and Grafana
+	Logging:
+		aggregates all the logs in a central logging infrastructure such as Elasticsearch.
+	HealthCheck:	
+	Rolling updates:
+	Scaling:
+	Administration:
+	Backup & Restore:	
+		https://engineering.zalando.com/posts/2017/12/backing-up-kafka-zookeeper.html
+
+========================== Kafka Listener / Advertise Listener  =======================
+
+Kafka Advertised Listener:
+	https://www.baeldung.com/kafka-docker-connection
+	https://i-sammy.medium.com/what-is-advertised-listeners-in-kafka-9e2a216e070 ***
+	
+	- Listener Vs Advertise Listener: Listeners are all the addresses the Kafka broker listens on (it can be more than 1 address) for internal communication between cluster whereas advertised listeners are the addresses other agents (producers, consumers, or brokers) need to connect to if they want to talk to the current broker
+
+	- All this listener information will be added to zookeeper, so that any client will be provided with the information
+
+	- 0.0.0.0 meta address means, bind the socket to all interfaces (PLAINTEXT://0.0.0.0:9092)
+	- multiple comma separated urls can be passed in Listeners and Advertised Listener
+
+	Docker container with user defined network should pass argument with alias name
+		- docker run -d --network local-net --name kafka-local -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-local:9092 spotify/kafka
+
+
+sample:
+	listeners=INTERNAL://:9093,CLIENT://:9092
+
+	# Hostname and port the broker will advertise to producers and consumers. If not set,
+	# it uses the value for "listeners" if configured.  Otherwise, it will use the value
+	# returned from java.net.InetAddress.getCanonicalHostName().
+
+	advertised.listeners=INTERNAL://kafka-0.kafka-headless.default.svc.cluster.local:9093,CLIENT://kafka-0.kafka-headless.default.svc.cluster.local:9092
+
+kafka broker pod (/etc/hosts):
+	172.16.185.102  kafka-0.kafka-headless.default.svc.cluster.local        kafka-0
+	2620:aa:0:fef9:1000:cfcf:1:b966 kafka-0.kafka-headless.default.svc.cluster.local        kafka-0
+
+
+=========================== Kafka Message Commit (Atmost Once) ========================
+
+- https://stackoverflow.com/questions/46325540/how-to-use-spring-kafkas-acknowledgement-acknowledge-method-for-manual-commit ( commit atmost once)
+
+		For those still looking for a solution to these errors concerning manual acknowledgment, you don't need to specify containerFactory = "kafkaManualAckListenerContainerFactory", instead you can just add:
+
+		factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
+		to your receiver config just before you return the factory object.
+
+		Then you also need:
+
+		props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);  
+		in consumer config props.
+
+		So in the end your listener method can simply look like:
+
+		@KafkaListener(topics = "${spring.kafka.topic}")
+	    private void listen(@Payload String payload, Acknowledgment acknowledgment) {
+	        //Whatever code you want to do with the payload
+	        acknowledgement.acknowledge(); //or even pass the acknowledgment to a different method and acknowledge even later
+	    }
+
+- https://github.com/spring-projects/spring-kafka/issues/1292  ( commit atmost once) 
+
+- https://docs.spring.io/spring-kafka/docs/1.0.0.M1/reference/html/_reference.html 
+	RECORD - call commitAsync() when the listener returns after processing the record.
+	BATCH - call commitAsync() when all the records returned by the poll() have been processed.
+	TIME - call commitAsync() when all the records returned by the poll() have been processed as long as the ackTime since the last commit has been exceeded.
+	COUNT - call commitAsync() when all the records returned by the poll() have been processed as long as ackCount records have been received since the last commit.
+	COUNT_TIME - similar to TIME and COUNT but the commit is performed if either condition is true.
+	MANUAL - the message listener (AcknowledgingMessageListener) is responsible to acknowledge() the Acknowledgment; after which, the same semantics as COUNT_TIME are applied.
+	MANUAL_IMMEDIATE - call commitAsync()` immediately when the Acknowledgment.acknowledge() method is called by the listener - must be executed on the container’s thread.
+
+
+===================== comtech kafka ============================
+
+/opt/bitnami/kafka/bin/kafka-topics.sh --zookeeper 172.16.158.45:2181 --list
+kafka-topics.sh --zookeeper 172.16.158.38:2181 --delete --topic DBNOTIFY
+kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic DBNOTIFY
+kafka-topics.sh --zookeeper localhost:2181 --alter --topic topic1 --config retention.ms=1000
+
+Watch TOPIC:
+-----------
+kubectl exec --stdin --tty kafka-0 -- /opt/bitnami/kafka/bin/kafka-console-consumer.sh --bootstrap-server kafka:9092 --topic DBNOTIFY
+
+java -Dlogging.config='/opt/tcs/positioning-agent/cfg/log4j2.xml' -classpath "/opt/tcs/positioning-agent/lib/positioning-agent-app.jar:/opt/tcs/corebaser-17.0.0/lib/*" org.springframework.boot.loader.JarLauncher --voyager.port=8010 --voyager.cfg=posagent
+
+bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic Kafka-Test --from-beginning
+
+------------------- kafka verion ------------------------------
+
+you can just inspect your kafka/libs folder. You should see files like kafka_2.10-0.8.2-beta.jar, where 2.10 is Scala version and 0.8.2-beta is Kafka version.
+
+sample : /opt/kafka_2.11-0.10.1.0
+
+scala - 2.11
+kakfka - 0.10.1.0
+
+
+------------------- node-rdkafka client --------------------------------
+
+Stream consumer samples :
+- https://github.com/Blizzard/node-rdkafka/tree/master/examples
+
+kafka message testing :
+- Always close all consumers after test case completed
+- Use on('data') instead of setTimeout()
+
+------------------- spotify kafka --------------------------------------
+docker run -d --name kafka_local -p 9092:9092 -e ADVERTISED_HOST=host.docker.internal  -e ADVERTISED_PORT=9092 spotify/kafka
+docker run -d --name kafka_local -p 9092:9092 -e ADVERTISED_HOST=localhost  -e ADVERTISED_PORT=9092 spotify/kafka (running)
+docker run -d --name kafka_local -p 9092:9092 --env ADVERTISED_HOST=localhost  --env ADVERTISED_PORT=9092 spotify/kafka
+
+	- docker exec -it kafka_local bash
+	- $KAFKA_HOME/bin/kafka-topics.sh --zookeeper 127.0.0.1:2181 --list
+	- $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic OM
+	- $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic TRACE-GLOBAL-JSON
+	- $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic EVENT
+	- $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic TRACE-KEYS-JSON
+	- $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic LDR
+	- /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server config:9092 --topic LDR
+
+	$KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic EVENT
+	
+in rack:
+	kafka-console-consumer.sh --bootstrap-server kafka.default.svc.cluster.local:9092 --topic TRACE-GLOBAL-JSON --from-beginning
+	kafka-console-consumer.sh --bootstrap-server kafka-1.kafka-headless.default.svc.cluster.local:9092 --topic TRACE-GLOBAL-JSON --from-beginning
+
+in service VM
+	/opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server config:9092 --topic LDR	
+
+----------------- confluent kafka --------------------------------
+
+- confluentinc/cp-kafka
+- https://docs.confluent.io/platform/current/quickstart/ce-docker-quickstart.html#ce-docker-quickstart	
+
+
+------------------- kafka Issue (node_rdkafka )--------------------------------
+
+WARNING  Kafka is down LibrdKafkaError: Local: Broker transport failure
+    at Function.createLibrdkafkaError [as create] (D:\Comtech_Project\Sprint\sprint-23\zaxiscollectionserver\els\node_modules\node-rdkafka\lib\error.js:423:10)
+    at D:\Comtech_Project\Sprint\sprint-23\zaxiscollectionserver\els\node_modules\node-rdkafka\lib\client.js:350:28 {
+  origin: 'local',
+  message: 'broker transport failure',
+
+Sol : 
+	https://github.com/Blizzard/node-rdkafka/issues/310
+	https://github.com/edenhill/librdkafka/blob/v1.5.3/CONFIGURATION.md
+	https://www.npmjs.com/package/node-rdkafka	
+
+----------------------- Kafka Stream consumer -------------------------------------
+
+stream vs consumer
+		- https://www.baeldung.com/java-kafka-streams-vs-kafka-consumer
+	
+Stream builder in nodejs
+   - kafka-observable : https://www.linkedin.com/pulse/nodejs-kafka-easy-peasy-observables-guilherme-hermeto		
+   - kafka stream : https://www.npmjs.com/package/node-rdkafka
+   - https://technology.amis.nl/languages/node-js/kafka-streams-and-nodejs-consuming-and-periodically-reporting-in-node-js-on-the-results-from-a-kafka-streams-streaming-analytics-application/
+	   
+rxjs observables:
+	- https://rxjs.dev/guide/overview
+	- https://blog.logrocket.com/understanding-rxjs-observables/ 
+
+java Queues:
+	- http://tutorials.jenkov.com/java-util-concurrent/blockingqueue.html		
+	
+-------------------------- Apache Kafka cluster setup -----------------------------	
+
+Zookeeper Quorum setup:
+-----------------------
+
+*** what is zookeeper?
+1. Zookeeper is a tree like structure, with each node called zNode having a path. zNode can be persistent/ephemeral and can store data.
+2. zNode can be watched for changes and cann't be renamed
+
+*** zookeeper role in kafka cluster ?
+1. It registers the broker with heartbeat mechanism to keep the list current
+2. Maintaining the list of topics (partitions, replication, ISRs for partition )
+3. Performing Leader election incase broker is down
+4. It stores kafka cluster id
+5. Storing ACLs
+	- Topics, Consumer groups, Users
+6. Quotas configuration
+7. Deprecated - It used by old consumer API to store consumer offset( now it is stored in kafka not is zookeeper)
+
+*** Zookeeper Quorum size ?
+1. Zookeeper quorum size should be of 1,3,5,7,9, (2N+1) servers, N server can go down any point of time
+2. 3 servers is prefered for small deployment
+3. 5 servers is required for big kafka deployment (e.g - used in Linkedin, Facebook etc) - need performant machine
+
+
+*** zookeeper configuration ?
+1. tickTime, initLimit, syncLimit, servers, clientport(2181)
+
+
+*** zookeeper machine setup ?
+1. bin/zookeeper-server-start.sh  -daemon config/zookeeper.propeties
+2. bin/zookeeper-shell.sh localhost:2181 ( to check if zookeeper is running, type ls)
+3. echo 'ruok' | nc localhost 2181 ; echo
+
+
+*** zookeeper as a service
+
+*** Using zookeeper CLI
+1. create nodes / sub nodes
+		node will be created once you put data init
+		
+2. get/set data for node
+3. Watch node
+	It will generate an event only once.
+4. delete a node
+
+*** zookeeper Quorum setup
+1. setup 3 zookeeper server quorum using quorum setup
+2. There are 3 port (2181,2888,3888) open for connection for each server , but 2181 is client port
+3. There will be one 1 and 2 followers, for 3 server setup
+4. Any operation happened in one will be reflected in other two ( create, set, rmr ) etc.
+5. cat logs/zookeeper to check logs
+
+*** using zookeeper four letter words
+1. echo 'conf'/'einv'/'srvr' | nc localhot 2181
+	
+*** zookeeper internal file system
+1. /data/zookeeper/myid - zookeeper server identity
+2. /data/zookeeper/version-2 - zookeeper data
+
+*** factor impacting zookeeper performance
+1. Fast disk (SSD)
+2. No Ram swap
+3. separate disk for logs and snapshot
+4. High performance network with near geographic location
+5. Resonable number of zookeeper servers
+6. Isolate zookeeper server from other processes
+
+*** zookeeper in AWS
+1. If private IPs are used, then you may get error. Use host name instead
+2. User Netflix Exhibitor 
+	- https://parkergordon.io/2017/03/23/zookeeper-in-aws-practices-for-high-availability-with-exhibitor/
+3. Amazon EMR to provison zookeeper cluster, but with less control
+4. Reserve your instances, if you are sure about using it for over a year ( decrease cost)
+
+Management Tools for zookeeper:-
+1. Install docker-ce and docker-compose in a separate machine other than zookeeper cluster
+2. Append the zookeeper hostnames in /etc/host
+3. check: nc -vz zookerper1 2181
+4. setup ZooNavigator
+	- Install zooNavigator yml using docker-compose
+	- Access the UI <IP>:8001/editor for zookeeper management
+
+*** Kafka Cluster setup
+1. kafka brokers form a cluster
+2. They hold partition and receive/serve data
+3. They are distributed and the unit of parallelism
+4. In case of 3 brokers, N-1 brokers can go down if N is default replication factor for the topic
+5. It is recomended to have replication factor of 3
+6. ISR vs ReplicationFactor vs Partition 
+	- https://blog.knoldus.com/apache-kafka-topic-partitions-replicas-isr/
+7. Kafka configuration
+	- All kafka broker configuration 
+8. AWS setup
+	- setup-5-kafka-ebs.sh
+	- kafka set up is done on the same VM as zookeeper but in production it should be different
+	- create a partition on the new disk volume attached and format it as xhs
+	- mount the volume to /data/kafka
+	- update fstab to persist the volume mount on restart
+
+9. kafka one machine setup
+	- setup-6-kafka-single.sh 
+	- Running Kafka commands
+
+10. Cluster setup
+	- min.insync.replica=1 for consumer_offset Topic, for a bug in Kafka
+
+11. Testing of kafka cluster
+	- We can connect to zookeeper from outside but not kafka using Elastic public IP
+
+12. Kafka Advertise Listener
+	- It should be configured to DNS name pointing to public IP when kafka client is in Internet	
+	- It should be configured to private IP or private DNS name, if the kafka client is in the same network
+    - It is suggested to use kafka broker and client in the private network
+
+13. Cluster management with Kafka Manager
+	- Cluster manger handles creation, deletion and debugging etc. of kafka topics    
+
+14. Kafka Resiliency
+	- 
+    

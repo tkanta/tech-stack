@@ -1,0 +1,4 @@
+update MS doc index:
+	- https://support.microsoft.com/en-us/office/create-and-update-an-index-cc502c71-a605-41fd-9a02-cda9d14bf073#:~:text=Create%20the%20index&text=Click%20where%20you%20want%20to%20add%20the%20index.,from%20the%20Formats%20dropdown%20menu.
+	- first move the content by dragging the whole index in content page
+	- Than select index table and press f9 and update whole table

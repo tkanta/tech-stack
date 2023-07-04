@@ -1,0 +1,24 @@
+
+======== zoo-keeper ===========
+
+Features:
+1. distributed configuration management
+2. self selection and consensus building
+3. Coordination and locks
+4. Key Value store
+5. Zoo-keeper is used in kafka and Hadoop
+
+Role in kafka cluster:
+1. Broker registration with heartbeats mechanism
+2. Maintaining the list of topics ( configuration, ISR )
+3. Leader election for Broker
+4. Storing kafka cluster ID
+5. Storing ACLS ( Topics, Consumer Groups, Users )
+6. Quotas configuration if enabled
+7. Deprecated ( used by old consumer API for storing consumer offset, now it is stored in Kafka)
+
+zoo-keeper Quorum sizing:
+1. 3 / 5
+
+zookeeper CLI:
+	nc -vz localhost 2181

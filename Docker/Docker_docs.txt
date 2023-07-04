@@ -1,0 +1,394 @@
+
+
+================== RUN Vs CMD Vs ENTRYPOINT ======================
+
+https://awstip.com/docker-run-vs-cmd-vs-entrypoint-78ca2e5472bd
+
+RUN  it if you want to execute it while you build the container
+CMD listing the script as the default command to run in the container
+
+
+===================== Docker load ======================================
+
+https://docs.docker.com/engine/reference/commandline/load/
+docker load:
+	sudo docker load < centos_nginx.tar.gz
+
+
+====================== Docker Best practices: ===========================
+
+- https://dev.to/techworld_with_nana/top-8-docker-best-practices-for-using-docker-in-production-1m39
+- https://snyk.io/blog/10-docker-image-security-best-practices/	
+- https://sysdig.com/blog/dockerfile-best-practices/	
+
+		* use offitial image (e.g node:17.0.1-alpine)
+		* Optimize caching for image layers when building an image
+		* Use .dockerignore file
+		* Make use of Multi-Stage Builds
+		* Use the Least Privileged User
+		* Scan your Images for Security Vulnerabilities
+
+dockerhub:
+	- tags are just alias of docker images
+
+
+================ WINDOW: create / test local docker image ====================
+
+docker build --tag cls-ofuscation:0.0.1 -f centosCopy.Dockerfile .
+
+docker run -d -it --cap-add=NET_ADMIN --privileged cls-ofuscation:0.0.1  /usr/sbin/init
+docker exec -it 36ae6d571722 /bin/bash
+sudo systemctl start docker
+
+docker cp 36ae6d571722:/opt/tcs/collectionServer/node_modules.zip  /c/Users/taranin/docker_cp
+docker cp /c/Users/taranin/docker_cp/collectionServer-0.0.2-1.x86_64.rpm daec2d2b38dd:/opt/tcs/collectionServer/collectionServer-0.0.2-1.x86_64.rpm
+
+
+============== error: Failed to get D-Bus connection: Operation not permitted for (systemctl start docker)	===========
+
+- https://stackoverflow.com/questions/50393525/failed-to-get-d-bus-connection-operation-not-permitted ****
+- https://bobcares.com/blog/docker-failed-to-get-d-bus-connection-operation-not-permitted/
+
+samples:
+	docker run -d -it --cap-add=NET_ADMIN --privileged cls-ofuscation:0.0.1  /usr/sbin/init
+	docker exec -it 36ae6d571722 /bin/bash
+	sudo systemctl start docker
+
+
+===================== docker build label: =================
+
+	echo "FROM rfspserver-meta-init:$CURRENT_REL_VERSION" | docker build --label version=${CURRENT_REL_VERSION} --label CI_PROJECT_ID=${CI_PROJECT_ID} --label CI_JOB_ID=${CI_JOB_ID} --tag ${DOCKER_DEVELOPMENT_IMAGE}-meta-init:${CURRENT_REL_VERSION} --tag rfspserver-meta-init:$CURRENT_REL_VERSION -
+	Sending build context to Docker daemon  2.048kB
+
+	Step 1/4 : FROM rfspserver-meta-init:0.0.3
+	 ---> 28b685906d27
+	Step 2/4 : LABEL CI_JOB_ID=83839
+	 ---> Running in af75975e8120
+	Removing intermediate container af75975e8120
+	 ---> 181bfdc5ff7f
+	Step 3/4 : LABEL CI_PROJECT_ID=1082
+	 ---> Running in d22a5107f43f
+	Removing intermediate container d22a5107f43f
+	 ---> e620ff942a10
+	Step 4/4 : LABEL version=0.0.3
+	 ---> Running in 5e39d0a58804
+	Removing intermediate container 5e39d0a58804
+	 ---> f6166b2819ed
+	Successfully built f6166b2819ed
+	Successfully tagged docker-development-local.artifactory.comtech-idn.com/comtechtel/location/positioning/rfspserver/rfspserver-meta-init:0.0.3
+	Successfully tagged rfspserver-meta-init:0.0.3
+
+
+=============== WORKDIR  ===================
+
+* Use WORKDIR insteadof cd
+	https://stackoverflow.com/questions/20632258/change-directory-command-in-docker
+
+* use of multiple workdir
+	https://dockerlabs.collabnix.com/beginners/dockerfile/WORKDIR_instruction.html#:~:text=you%20can%20have%20multiple%20WORKDIR,to%20the%20previous%20WORKDIR%20instruction.&text=If%20no%20WORKDIR%20is%20specified,set%20in%20Dockerfile%20using%20ENV.
+
+	WORKDIR with Absolute path:
+		Dockerfile:
+
+		FROM alpine:3.9.3
+		LABEL maintainer="Collabnix"
+
+		WORKDIR /opt/folder1
+		RUN echo "Welcome to Docker Labs" > opt.txt
+		WORKDIR /var/tmp/
+
+========================= Docker statistics ===========================================
+
+login in to worker nodes
+	sudo docker container ls -a | grep rfsp
+	sudo docker stats 9dd055fa21fe (check specific container)
+
+============================== Docker Bridge Network ====================================
+
+Docker Bridge Communication:
+   	https://www.tutorialworks.com/container-networking/ 
+
+1. Default	
+	- For default bridge all container will be assigned a dynamic unique IP address and each container need to know this IP to connect to that container
+
+2. User defined
+	- We need to create a user defined nework for communication among the containers
+	- Each container should be created with the network, so that container can talk to each other with container alias name
+	- Pass argument with alias name during container creation for service that need to expose or accept alias name.
+		e.g kafka advertized listener needs to expose its alias name to external clients
+
+   	Samples:
+   	----------
+   	* docker network create local-net
+	* docker run -d --network local-net --name kafka-local -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-local:9092 spotify/kafka
+	* docker run --network local-net --name postgres_local -e POSTGRES_PASSWORD=my_password -p 5432:5432 -d postgres:latest
+	* docker run --network local-net --name rfsp-local -p 9090:9090 76b3c4a50ceb
+	* docker run --network local-net -e POSTGRES_SERVICE=postgres_local -e POSTGRES_PASSWORD=my_password -e LIQUIBASE_CONTEXT=dev rfsp-server:rfsp-server-db-init
+	* docker run --network local-net --name postgres_local -e POSTGRES_PASSWORD=my_password -p 5432:5432 -d postgis/postgis
+	* docker run -d --network local-net --name redis_local -p 6379:6379 redis
+	* docker run -it --network local-net --name cls1 --privileged=true -p 8841:8843 tarini/centos-iptables bash
+	* docker run -it --network local-net --name cls2 --privileged=true -p 8842:8843 tarini/centos-iptables bash
+
+3. commands:
+	- docker network ls		
+
+4. Service to Service connection:
+		- replace service names (e.g: kafka-local/redis_local/cls2/cls1) in configuration insteadof 'localhost'
+		- use internal port for service -> service connection 
+				e.g: cls1 (8841:8843) -> cls2 (8842:8843)
+						from cls1 -> cls2 service connection, use 8843, not 8842
+
+5. From outside to Service connection:
+		- use localhost from outside (e.g: postman)
+
+
+=============================== Docker Liquibase ============================================
+
+docker run -e POSTGRES_SERVICE=host.docker.internal -e POSTGRES_PASSWORD=my_password -e LIQUIBASE_CONTEXT=dev b84df86a8552
+
+Run docker image to run liquibase to create db/function/procedure 
+
+
+
+=====================================  Docker Commands ===============================================
+
+
+Docker exec:
+	- docker exec -it 27fe4e3d5b86 bash
+	- docker exec -it -u root 39ef20cff9a3 bash (login as root user)
+		* https://superuser.com/questions/912107/whats-default-root-password-for-docker-official-centos-image
+
+Docker remove:
+	- docker rm 2ffe3f429971 9536956e9f1d 464201a013ba ( remove container )
+	- docker rm --force bb ( remove container with force )
+	- docker rmi $(docker images -a -q) (remove all images)
+
+Docker RUN:
+	https://docs.docker.com/engine/reference/run/ (Docker RUN)
+	- docker run --name postgres_local -e POSTGRES_PASSWORD=my_password -p 5432:5432 -d postgres:latest
+	- docker run -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_USERNAME=postgres -it positioning-reference-system:postgres bash
+	- docker run -p 8080:8080 positioning-reference-system:positioning-agent
+	- docker run -p 8080:8080 --name pos-agent -it positioning-reference-system:positioning-agent 
+	- docker run -it centos/nodejs-10-centos7 bash (window command line)
+	- docker run -it --entrypoint /bin/bash collectionserver:1.0.30 
+		* https://phoenixnap.com/kb/docker-run-override-entrypoint 
+
+	with capabilities:	
+	- docker run -p 8843:8843 -it --cap-add=NET_ADMIN cls-verizon-vulnerability:0.0.1  /bin/bash
+	- docker run -d  -p 8843:8843 -it --cap-add=NET_ADMIN --privileged cls-verizon-vulnerability:0.0.1  /usr/sbin/init	
+
+Docker Volumes
+	- docker run -p 8843:8843 -v /app/node_modules -v $(pwd):/app <image_name>
+	- docker run -p 8843:8843 -v $(pwd):/app <image_name> /bin/bash  ( in Linux )
+	- docker run -it -p 8843:8843 -v /d/test:/app <image_name> /bin/bash  ( in Windows )
+	- docker run -it <image_name> /bin/bash  ( not working in Windows )
+
+Docker COPY: (run outside the container)
+	https://stackoverflow.com/questions/22049212/docker-copying-files-from-docker-container-to-host
+	-docker cp ba9588b7450f:/app/SOURCES .
+	-docker cp ba9588b7450f:/app/SPECS .
+	-docker cp ba9588b7450f:/app/collectionServer.service .
+	-docker cp /c/Users/taranin/.ssh/id_rsa.pub 9925256be9b8:/root/.ssh
+	-docker cp /c/Users/taranin/.ssh/id_rsa 9925256be9b8:/root/.ssh 
+	-docker cp clever_archimedes:/opt/app-root/src/node_modules heapdump/
+
+	copy from window gitbash to container:
+		docker cp ./collection-server.zip 39ef20cff9a3:/opt/app-root/src/Tarini
+
+	copy from container to window local: 
+		docker cp e79c71978794:/opt/tcs/collectionServer/snmp_post.cap	.
+		docker cp 36ae6d571722:/opt/tcs/collectionServer/node_modules.zip  /c/Users/taranin/docker_cp	
+			- create zip file of node_modules folder and copy (zip -r node_modules.zip node_modules/*)
+			- run in git-bash
+    copy whole folder:
+    	https://manpages.ubuntu.com/manpages/xenial/en/man1/docker-cp.1.html
+		copy whole folder:
+			sudo docker cp  ado-std-container-image-30_job-tarini:/std-container/ado-stdctr/ansible .
+
+			
+Docker Build:
+	- docker build --tag tarini/collection-rpm -f Dockerfile.test .
+	- build test image name: (By reusing the centos.DockerFile of CLS)
+			docker build --tag tarini/centos-iptables -f centos_copy.Dockerfile .
+
+Docker Volume:
+	Testing local Steps:
+		- Create Dockerfile.test  (with only FROM and WORKDIR)
+		- create image
+		- run with volume command
+				docker run -it -p 8843:8843 -v /d/test:/app <image_name> /bin/bash
+				docker run -it -p 8843:8843 -v $(pwd):/app <image_name> /bin/bash
+   
+    Exclude volume Map:
+    	-v /app/node_modules (It will exclude mapping node_modules from container to local, instead only use the container node_modules)
+  
+Docker System:
+	docker system prune -a  (remove all images from system) 
+	docker image prune -s  
+	
+Docker Save:
+	https://docs.docker.com/engine/reference/commandline/save/
+	Window : use gitbash for docker save command 
+	docker save myimage:latest | gzip > myimage_latest.tar.gz
+
+	save running container:
+		https://www.dataset.com/blog/create-docker-image/
+		docker commit <container-id> <tag-name>
+			* docker commit ff4be937f85a centos_nginx
+
+Docker Run in detail:
+	- docker ps --all (list all container)
+	- docker run busybox echo hii all
+	- docker create image
+	- docker start -a image
+	- docker start -a container
+	- docker system prune ( remove all container )
+	- docker stop/kill <container-id>
+
+Docker logs:
+	- docker logs <container-id> 
+
+iptables :
+	https://linux.die.net/man/8/iptables
+	Issues:
+		- iptables is not working in Windows docker but working in linux docker	
+	
+	
+tcpdump :
+	tcpdump -i <etho> port <4132> -w <fileName> : dumps all packets , that can be verified in wireshark
+	mv /usr/sbin/tcpdump /usr/bin ( to prevent permission error in docker )	
+
+
+docker inside docker :
+	docker inside docker 
+		-> dockerdidn is required for communication between docker containers running inside docker.
+		-> ubuntu multipass
+
+Docker privilege mode / root user:
+	docker run -it --privileged=true centos/nodejs-10-centos7 bash
+	docker exec -it -u root 39ef20cff9a3 bash
+
+	privilege mode:
+		- https://phoenixnap.com/kb/docker-privileged
+	
+==================================== Linux Commands ================================================
+
+netstat -an | find  "5355"
+Linux comparison operators
+	http://tldp.org/LDP/abs/html/comparison-ops.html
+
+rpm run:
+yum -y localinstall FILENAME       -- with SUDO
+​yum remove RPMNAME to uninstall
+
+
+=================================== Test Containers ================================================
+
+https://www.testcontainers.org/
+https://www.testcontainers.org/features/startup_and_waits/ (Wait Strategy)
+https://www.testcontainers.org/features/configuration/ ( configuration )	
+
+
+//    @ClassRule
+//    public static GenericContainer postgresContainer = new GenericContainer("rfsp-server-integration-system:postgres")
+//            .withNetwork(testNetwork).withNetworkAliases("postgres").withExposedPorts(5432)
+//            .waitingFor((Wait.forListeningPort()));
+
+    
+//	@ClassRule
+//	public static GenericContainer rfspServerContainer = new GenericContainer("rfsp-server-integration-system:rfsp-server")
+//	            .withNetwork(testNetwork).withNetworkAliases("rfsp-server").withExposedPorts(9090)
+//	            .withLogConsumer(new ContainerConsumer("rfsp-server"))
+//	            .dependsOn(kafkaContainer)
+//	            .waitingFor(Wait.forListeningPort());
+    
+	
+//	  static
+//	  {
+//		  rfspServerContainer.start();
+//		  rfspServerContainer.setPortBindings(Arrays.asList("9090:9090"));	
+//		  System.out.println("():"+rfspServerContainer.getContainerIpAddress());
+//		  AbstractSteps.url = "http://"+rfspServerContainer.getContainerIpAddress()+":9090";
+//	  }
+
+
+=========================== wondow Docker Installation ============================================
+
+Window Installer:
+	https://hub.docker.com/editions/community/docker-ce-desktop-windows/
+
+DOCKER_HOST env variable on Windows:
+	https://stackoverflow.com/questions/39487399/docker-host-environment-variable-on-windows
+
+Settings -> General -> Expose daemon
+
+Wiindow DOCKER location:
+	C:\program files\docker\docker\resources\com.docker.backend.exe
+
+
+------------- Setup Docker Error: --------------------
+
+1. Running com.comtechtel.location.positioning.refsystem.CucumberIT:
+	12:55:48.502 [main] ERROR docker[positioning-reference-system:positioning-agent] - Could not start container
+	com.github.dockerjava.api.exception.InternalServerErrorException: Ports are not available: listen tcp 0.0.0.0:8080: bind: An attempt was made to access a socket in a way forbidden by its access permissions.
+
+Resolution:
+https://stackoverflow.com/questions/57316744/docker-sql-bind-an-attempt-was-made-to-access-a-socket-in-a-way-forbidden-by-it
+
+
+2. standard_init_linux.go:211: exec user process caused "no such file or directory":
+	https://futurestud.io/tutorials/how-to-fix-exec-user-process-caused-no-such-file-or-directory-in-docker
+	https://github.com/riggraz/astuto/issues/9
+	
+
+-------------- Windows WLS2------------------------------
+
+WSL - Window subsystem for Linux
+
+https://medium.com/@lewwybogus/how-to-stop-wsl2-from-hogging-all-your-ram-with-docker-d7846b9c5b37 ( WLS2 configuration )
+
+
+-----------------------------------------------------------------------------
+---- Hyper-V based VM -Vs- Window native linux container support (WLS2):----
+-----------------------------------------------------------------------------
+
+1) Hyper-V based VM:
+https://windowsreport.com/hyper-v-and-containers-not-enabled/#:~:text=Enable%20Virtualization%20in%20BIOS%20for%20Hyper%2DV&text=Shutdown%20your%20computer%20if%20it,to%20open%20the%20BIOS%20setup.&text=Try%20to%20run%20Docker%20and,not%20enabled%20error%20is%20resolved.
+
+https://docs.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/linux-containers
+
+Well, Docker Desktop for Windows requires Hyper-V to be enabled on your Windows 10 system, while Docker Engine – Enterprise (from now on referred to as Docker EE) does not.
+
+2) Window native linux container (WLS2) : 
+https://www.hanselman.com/blog/DockerAndLinuxContainersOnWindowsWithOrWithoutHyperVVirtualMachines.aspx#:~:text=With%20the%20latest%20version%20of,10's%20built%20in%20container%20support.
+
+With the latest version of Windows 10 (or 10 Server) and the beta of Docker for Windows, there's native Linux Container support on Windows. That means there's no Virtual Machine or Hyper-V involved (unless you want), so Linux Containers run on Windows itself using Windows 10's built in container support.
+
+Settings -> Use the WSL 2 based engine (requires Win 10 build 19018+)
+	WSL 2 provides better performance than the legacy Hyper-V backend. Learn more.
+	
+	
+  
+    
+================================ Docker and K8s Complete Guide ==========================================
+
+Section-4: Making Real projects with Docker	----
+*. DockerHub node image
+	- node : It is a docker image with preinstalled node
+	- tag are a list of version that should be added to node for loading a specific image
+		e.g. node:14-alpine, node:alpine ( node alpine version is a most striped version of node image)
+    - while creating image :latest will be autometically appended if not specified
+    - COPY . . ( by default copied files to root directory)
+
+Section-5: Docker-compose with multiple local container
+Section-6: Creating production grade work flow ----
+* Docker Volumes
+	- docker run -p 8843:8843 -v /app/node_modules -v $(pwd):/app <image_name>
+	- docker run -p 8843:8843 -v $(pwd):/app <image_name> /bin/bash  ( in Linux )
+	- docker run -it -p 8843:8843 -v /d/test:/app <image_name> /bin/bash  ( in Windows )
+
+* Docker image:
+	docker build --tag tarini/collection-rpm -f Dockerfile.test .	
+
+
+	
